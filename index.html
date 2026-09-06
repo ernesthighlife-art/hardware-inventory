@@ -74,10 +74,10 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 </div>
 
 <dialog id="productDialog" class="dialog"><div class="form">
-<h2 id="productDialogTitle">新增商品</h2><div class="notice">商品資料會儲存在雲端。若上傳照片，照片會放在私有的 inventory-photos。</div>
+<h2 id="productDialogTitle">新增商品</h2><div class="notice">商品資料會儲存在雲端。照片會放在私有的 inventory-photos。已建立商品請使用「入庫／出庫」調整庫存。</div>
 <div class="two"><div><label>商品名稱</label><input id="name" type="text" placeholder="例如：十字螺絲"></div><div><label>商品編號</label><input id="sku" type="text" placeholder="例如：SL-M6-030-001"></div></div>
 <div class="two"><div><label>規格</label><input id="spec" type="text" placeholder="例如：M6 × 30mm、白鐵"></div><div><label>條碼</label><input id="barcode" type="text" placeholder="可手動輸入"></div></div>
-<div class="two"><div><label>廠商</label><select id="vendor"></select></div><div><label>單位名稱</label><input id="unit" type="text" placeholder="個、盒、包、箱"></div></div>
+<div class="two"><div><label>廠商</label><select id="vendor"></select></div><div><label>單位</label><input id="unit" type="text" placeholder="個、盒、包、箱"></div></div>
 <div class="two"><div><label>母項目</label><input id="parentCategory" type="text" placeholder="例如：螺絲類"></div><div><label>子項目</label><input id="childCategory" type="text" placeholder="例如：十字螺絲"></div></div>
 <div class="two"><div><label>所在位置</label><input id="location" type="text" placeholder="例如：A01-03"></div><div><label>日期</label><input id="date" type="date"></div></div>
 <div class="two"><div><label>目前數量</label><input id="qty" type="number" min="0" value="0"></div><div><label>最低庫存</label><input id="minQty" type="number" min="0" value="0"></div></div>
@@ -91,7 +91,7 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 <label>廠商名稱</label><input id="vendorName" type="text" placeholder="例如：XX五金"><label>聯絡電話</label><input id="vendorPhone" type="text" placeholder="選填"><label>地址</label><input id="vendorAddress" type="text" placeholder="選填"><label>聯絡人</label><input id="vendorContact" type="text" placeholder="選填"><label>備註</label><textarea id="vendorNote" placeholder="選填"></textarea>
 <div class="form-actions"><button class="secondary" id="cancelVendor">取消</button><button class="primary" id="saveVendor">新增廠商</button></div></div></dialog>
 
-<dialog id="movementDialog" class="dialog"><div class="form"><h2 id="movementTitle">庫存異動</h2><div id="movementProduct" class="notice"></div><label>數量</label><input id="movementQty" type="number" min="1" value="1"><label>原因</label><input id="movementReason" type="text" placeholder="例如：進貨、銷售、損耗、盤點修正"><div class="form-actions"><button class="secondary" id="cancelMovement">取消</button><button class="primary" id="saveMovement">確認</button></div></div></dialog>
+<dialog id="movementDialog" class="dialog"><div class="form"><h2 id="movementTitle">庫存異動</h2><div id="movementProduct" class="notice"></div><div class="small" style="margin-top:6px">這次操作會同時更新庫存並建立異動紀錄。</div><label>數量</label><input id="movementQty" type="number" min="1" value="1"><label>原因</label><input id="movementReason" type="text" placeholder="例如：進貨、銷售、損耗、盤點修正"><div class="form-actions"><button class="secondary" id="cancelMovement">取消</button><button class="primary" id="saveMovement">確認</button></div></div></dialog>
 
 <dialog id="documentDialog" class="dialog"><div class="form"><h2>📷 貨單／AI 整理</h2><div class="scan-box"><div style="font-size:38px">📷</div><h3>拍攝或選擇貨單</h3><div class="small">照片會先儲存在私有空間。真正 AI 辨識會在後端完成。</div><input id="documentPhoto" type="file" accept="image/*" capture="environment" style="margin-top:14px"></div><div id="docPreview"></div><div class="form-actions"><button class="secondary" id="cancelDocument">關閉</button><button class="primary" id="createDocument">建立待辨識貨單</button></div></div></dialog>
 
@@ -237,13 +237,18 @@ async function renderDocuments(){
   <div class="list">${(data||[]).map(d=>`<div class="card section"><div class="row"><div><h3>📄 ${esc(d.document_number||"未編號貨單")}</h3><div class="meta">${esc(d.document_date||"未填日期")} ・ ${esc(d.status)}</div></div><span class="badge">${esc(d.status)}</span></div></div>`).join("")||`<div class="card empty">尚無貨單</div>`}</div>`;
 }
 
+function setStockFieldState(isEditing){
+  const input=$("qty");
+  input.disabled=!!isEditing;
+  input.title=isEditing?"既有商品請使用「入庫／出庫」調整庫存":"新增商品可以直接設定初始庫存";
+}
 async function openProduct(id=null){
   await loadMeta();editingId=id;pendingPhoto=null;let p=null;
   if(id){const r=await sb.from("products").select("*").eq("id",id).single();if(r.error)return alert("讀取商品失敗："+r.error.message);p=r.data}
-  $("productDialogTitle").textContent=p?"編輯商品":"新增商品";$("name").value=p?.name||"";$("sku").value=p?.sku||"";$("spec").value=p?.spec||"";$("barcode").value=p?.barcode||"";
+  $("productDialogTitle").textContent=p?"編輯商品":"新增商品";setStockFieldState(!!p);$("name").value=p?.name||"";$("sku").value=p?.sku||"";$("spec").value=p?.spec||"";$("barcode").value=p?.barcode||"";
   $("vendor").innerHTML=`<option value="">未設定廠商</option>`+vendorCache.map(v=>`<option value="${v.id}" ${p?.vendor_id===v.id?"selected":""}>${esc(v.name)}</option>`).join("");
   $("unit").value=p?.unit||"個";$("parentCategory").value=p?.parent_category||"";$("childCategory").value=p?.child_category||"";$("location").value=p?.location||"";$("date").value=p?.record_date||today;
-  $("qty").value=p?.stock??0;$("minQty").value=p?.min_stock??0;$("cost").value=p?.cost??"";$("price").value=p?.price??"";$("note").value=p?.note||"";
+  $("qty").value=p?.stock??0;setStockFieldState(!!p);$("minQty").value=p?.min_stock??0;$("cost").value=p?.cost??"";$("price").value=p?.price??"";$("note").value=p?.note||"";
   $("preview").style.display=p?.photo_path?"block":"none";$("preview").src=p?.photo_path?await signedPhoto(p.photo_path):"";$("photo").value="";$("productDialog").showModal();
 }
 async function uploadPhoto(file,productId){
@@ -255,9 +260,16 @@ $("saveProduct").onclick=async()=>{
   const user=await sb.auth.getUser();if(!user.data.user)return;
   const name=$("name").value.trim();if(!name)return alert("請輸入商品名稱");$("saveProduct").disabled=true;
   try{
-    const obj={name,sku:$("sku").value.trim()||null,spec:$("spec").value.trim()||null,barcode:$("barcode").value.trim()||null,vendor_id:$("vendor").value||null,unit:$("unit").value.trim()||"個",parent_category:$("parentCategory").value.trim()||null,child_category:$("childCategory").value.trim()||null,location:$("location").value.trim()||null,record_date:$("date").value||today,stock:Math.max(0,Number($("qty").value||0)),min_stock:Math.max(0,Number($("minQty").value||0)),cost:Math.max(0,Number($("cost").value||0)),price:Math.max(0,Number($("price").value||0)),note:$("note").value.trim()||null,category:$("parentCategory").value.trim()||null};
+    const obj={name,sku:$("sku").value.trim()||null,spec:$("spec").value.trim()||null,barcode:$("barcode").value.trim()||null,vendor_id:$("vendor").value||null,unit:$("unit").value.trim()||"個",parent_category:$("parentCategory").value.trim()||null,child_category:$("childCategory").value.trim()||null,location:$("location").value.trim()||null,record_date:$("date").value||today,min_stock:Math.max(0,Number($("minQty").value||0)),cost:Math.max(0,Number($("cost").value||0)),price:Math.max(0,Number($("price").value||0)),note:$("note").value.trim()||null,category:$("parentCategory").value.trim()||null};
     if(editingId){if(pendingPhoto)obj.photo_path=await uploadPhoto(pendingPhoto,editingId);const r=await sb.from("products").update({...obj,updated_at:new Date().toISOString()}).eq("id",editingId);if(r.error)throw r.error}
-    else{const id=crypto.randomUUID();obj.id=id;if(pendingPhoto)obj.photo_path=await uploadPhoto(pendingPhoto,id);const r=await sb.from("products").insert(obj);if(r.error)throw r.error}
+    else{
+      const id=crypto.randomUUID();
+      obj.id=id;
+      obj.stock=Math.max(0,Number($("qty").value||0));
+      if(pendingPhoto)obj.photo_path=await uploadPhoto(pendingPhoto,id);
+      const r=await sb.from("products").insert(obj);
+      if(r.error)throw r.error;
+    }
     $("productDialog").close();page=0;await render();
   }catch(e){alert("儲存失敗："+(e.message||String(e)))}finally{$("saveProduct").disabled=false}
 };
@@ -269,7 +281,32 @@ $("saveVendor").onclick=async()=>{const name=$("vendorName").value.trim();if(!na
 
 function openMovement(id,type){movementId=id;movementType=type;const p=productCache.find(x=>x.id===id);$("movementTitle").textContent=type==="入庫"?"📥 商品入庫":"📤 商品出庫";$("movementProduct").innerHTML=`${esc(p?.name||"商品")}<br>目前庫存：<strong>${fmt(p?.stock)} ${esc(p?.unit||"個")}</strong>`;$("movementQty").value=1;$("movementReason").value=type==="入庫"?"進貨":"銷售";$("movementDialog").showModal()}
 $("cancelMovement").onclick=()=>$("movementDialog").close();
-$("saveMovement").onclick=async()=>{const qty=Number($("movementQty").value);if(!Number.isFinite(qty)||qty<=0)return alert("請輸入正確數量");const r=await sb.from("products").select("id,stock,unit").eq("id",movementId).single();if(r.error)return alert("讀取商品失敗："+r.error.message);const p=r.data,delta=movementType==="入庫"?qty:-qty,before=Number(p.stock||0),after=before+delta;if(after<0)return alert("出庫數量不可超過目前庫存");const u=await sb.from("products").update({stock:after,record_date:today,updated_at:new Date().toISOString()}).eq("id",movementId);if(u.error)return alert("更新庫存失敗："+u.error.message);const i=await sb.from("inventory_transactions").insert({product_id:movementId,type:movementType,quantity:qty,delta,before_stock:before,after_stock:after,reason:$("movementReason").value.trim()||null});if(i.error)return alert("庫存已更新，但異動紀錄寫入失敗："+i.error.message);$("movementDialog").close();await render()};
+$("saveMovement").onclick=async()=>{
+  const qty=Number($("movementQty").value);
+  if(!Number.isFinite(qty)||qty<=0)return alert("請輸入正確數量");
+
+  const reason=$("movementReason").value.trim()||null;
+  $("saveMovement").disabled=true;
+
+  try{
+    const {data,error}=await sb.rpc("change_stock",{
+      p_product_id:movementId,
+      p_type:movementType,
+      p_quantity:qty,
+      p_reason:reason
+    });
+
+    if(error)throw error;
+
+    $("movementDialog").close();
+    page=0;
+    await render();
+  }catch(e){
+    alert("庫存異動失敗："+(e.message||String(e)));
+  }finally{
+    $("saveMovement").disabled=false;
+  }
+};
 
 async function showProductHistory(id){const r=await sb.from("inventory_transactions").select("created_at,type,delta,before_stock,after_stock,reason").eq("product_id",id).order("created_at",{ascending:false}).limit(50);if(r.error)return alert("讀取紀錄失敗："+r.error.message);alert((r.data||[]).map(t=>`${new Date(t.created_at).toLocaleString("zh-TW")}｜${t.type}｜${t.delta>0?"+":""}${t.delta}｜${t.before_stock} → ${t.after_stock}｜${t.reason||""}`).join("\\n")||"目前沒有異動紀錄")}
 async function removeProduct(id){if(!confirm("確定刪除這個商品？"))return;const p=productCache.find(x=>x.id===id);if(p?.photo_path)await sb.storage.from(CONFIG.bucket).remove([p.photo_path]);const r=await sb.from("products").delete().eq("id",id);if(r.error)return alert("刪除失敗："+r.error.message);await render()}
@@ -303,4 +340,3 @@ boot();
 </script>
 </body>
 </html>
-<!-- 更新部署 -->
