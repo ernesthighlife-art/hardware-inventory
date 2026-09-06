@@ -32,7 +32,7 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 .empty{text-align:center;color:var(--muted);padding:45px 12px}.pager{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px}.notice{background:var(--accentBg);color:#7a4a19;border-radius:13px;padding:11px 13px;font-size:13px;line-height:1.55;margin-bottom:12px}
 .dialog{border:0;border-radius:20px;width:min(95%,720px);padding:0;box-shadow:0 20px 70px rgba(0,0,0,.25)}.dialog::backdrop{background:rgba(15,23,42,.66)}.form{padding:20px}.form h2{margin:0 0 8px}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-actions{display:flex;gap:8px;margin-top:18px}.form-actions>*{flex:1}.preview{width:100%;max-height:210px;object-fit:contain;border-radius:13px;margin-top:8px;background:#f1ece5}
 .fab{position:fixed;right:18px;bottom:18px;width:58px;height:58px;border:0;border-radius:50%;background:var(--accent);color:#fff;font-size:30px;box-shadow:0 8px 30px rgba(15,23,42,.28);z-index:12}
-.scan-box{border:2px dashed #d5c6b5;padding:26px;border-radius:16px;text-align:center;background:#fcfaf6}.menu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.scan-box{border:2px dashed #d5c6b5;padding:26px;border-radius:16px;text-align:center;background:#fcfaf6}
 @media(max-width:900px){.quick{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr 1fr}.tabs{grid-template-columns:repeat(4,1fr)}}@media(max-width:560px){main{padding:12px}.two{grid-template-columns:1fr}.topline .secondary{display:none}}
 @media(min-width:950px){.product{display:grid;grid-template-columns:68px 1fr auto;gap:12px;align-items:center}.product-top{display:contents}.product .actions{margin-top:0;justify-content:flex-end}}
 
@@ -64,11 +64,11 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 
 <div id="appShell" class="hidden">
 <header><div class="header-inner"><div class="topline">
-  <div><div class="title">📦 我的庫存</div><div class="subtitle">商品・廠商・分類・位置・盤點・進出貨</div><div id="accountEmail" class="account"></div></div>
+  <div><div class="title">📦 我的庫存</div><div class="subtitle">商品・廠商・分類・位置・進出貨</div><div id="accountEmail" class="account"></div></div>
   <button id="logoutBtn" class="secondary" style="background:#ffffff14;color:#fff;border-color:#ffffff33">登出</button>
 </div><input id="search" class="search" placeholder="🔎 搜尋商品編號、名稱、規格、廠商、分類、位置、條碼…"></div></header>
 <main>
-  <div class="quick"><button onclick="setTab('products')">📦 商品</button><button onclick="setTab('vendors')">🏭 廠商</button><button onclick="setTab('categories')">📂 分類</button><button onclick="setTab('locations')">📍 位置</button><button onclick="setTab('counting')">🧮 盤點</button><button onclick="setTab('documents')">📷 貨單</button></div>
+  <div class="quick"><button onclick="setTab('products')">📦 商品</button><button onclick="setTab('vendors')">🏭 廠商</button><button onclick="setTab('categories')">📂 分類</button><button onclick="setTab('locations')">📍 位置</button><button onclick="setTab('documents')">📷 貨單</button></div>
   <div class="grid">
     <div class="card stat"><span class="label">商品種類</span><strong id="statProducts">0</strong><small>雲端商品</small></div>
     <div class="card stat"><span class="label">庫存總數</span><strong id="statQty">0</strong><small>目前可見資料</small></div>
@@ -76,7 +76,7 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
     <div class="card stat"><span class="label">低庫存</span><strong id="statLow">0</strong><small>需要補貨</small></div>
   </div>
   <div class="tabs">
-    <button class="active" data-tab="products">商品</button><button data-tab="vendors">廠商</button><button data-tab="categories">分類</button><button data-tab="locations">位置</button><button data-tab="transactions">異動</button><button data-tab="counting">盤點</button><button data-tab="documents">貨單／AI</button>
+    <button class="active" data-tab="products">商品</button><button data-tab="vendors">廠商</button><button data-tab="categories">分類</button><button data-tab="locations">位置</button><button data-tab="transactions">異動</button><button data-tab="documents">貨單／AI</button>
   </div>
   <div id="app"><div class="card empty">載入中…</div></div>
 </main><button class="fab" id="addBtn">＋</button>
@@ -290,13 +290,6 @@ async function renderTransactions(){
   ${(data||[]).map(t=>`<tr><td>${esc(new Date(t.created_at).toLocaleString("zh-TW"))}</td><td>${esc(productCache.find(p=>p.id===t.product_id)?.name||"商品")}</td><td>${esc(t.type)}</td><td class="num">${t.delta>0?"+":""}${fmt(t.delta)}</td><td class="num">${fmt(t.before_stock)}</td><td class="num">${fmt(t.after_stock)}</td><td>${esc(t.reason||"")}</td></tr>`).join("")||`<tr><td colspan="7" style="text-align:center;padding:30px">尚無異動紀錄</td></tr>`}
   </tbody></table></div></div>`;
 }
-async function renderCounting(){$("app").innerHTML=`<div class="menu-grid"><div class="card section"><h3>🧮 開始盤點</h3><div class="meta">下一步可做掃條碼、逐格盤點與差異一次套用。</div><button class="primary" onclick="alert('盤點介面已預留，接下來可以加入完整的逐項盤點。')">開始盤點</button></div><div class="card section"><h3>📍 指定位置盤點</h3><div class="meta">依貨架或區域盤點。</div><button class="secondary" onclick="alert('位置盤點介面已預留。')">選擇位置</button></div></div>`}
-async function renderDocuments(){
-  const {data,error}=await sb.from("purchase_documents").select("id,document_number,document_date,status,image_path,created_at").order("created_at",{ascending:false}).limit(50);
-  if(error)throw new Error("讀取貨單資料失敗："+error.message);
-  $("app").innerHTML=`<div class="notice"><strong>AI 貨單流程</strong><br>拍貨單 → AI 辨識 → 對照既有商品 → 媽媽確認 → 入庫。</div><div class="addbar"><div class="hint">最近 50 張貨單</div><button class="primary" onclick="$('documentDialog').showModal()">📷 拍貨單</button></div>
-  <div class="list">${(data||[]).map(d=>`<div class="card section"><div class="row"><div><h3>📄 ${esc(d.document_number||"未編號貨單")}</h3><div class="meta">${esc(d.document_date||"未填日期")} ・ ${esc(d.status)}</div></div><span class="badge">${esc(d.status)}</span></div></div>`).join("")||`<div class="card empty">尚無貨單</div>`}</div>`;
-}
 
 function setStockFieldState(isEditing){
   const input=$("qty");
@@ -390,7 +383,6 @@ async function render(first=false){
     else if(currentTab==="categories")renderCategories();
     else if(currentTab==="locations")renderLocations();
     else if(currentTab==="transactions")await renderTransactions();
-    else if(currentTab==="counting")await renderCounting();
     else if(currentTab==="documents")await renderDocuments();
   }catch(e){
     console.error(e);
