@@ -46,9 +46,10 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 @media(max-width:560px){.filter-grid{grid-template-columns:1fr}.filter-actions{flex-wrap:wrap}.filter-summary{flex-basis:100%}}
 
 .search-wrap{position:relative;margin-top:13px}
-.search-wrap .search{margin-top:0;padding-right:52px}
+.search-wrap .search{margin-top:0;padding-right:98px}
 .voice-btn{position:absolute;right:6px;top:6px;width:38px;height:38px;border:0;border-radius:11px;background:#f3ece4;color:#5e4f45;font-size:19px}
 .voice-btn.listening{background:#c7782a;color:#fff;box-shadow:0 0 0 4px rgba(199,120,42,.16)}
+.smart-btn{position:absolute;right:51px;top:6px;width:38px;height:38px;border:0;border-radius:11px;background:#efe7ff;color:#5b3f91;font-size:18px}.smart-btn.busy{background:#5b3f91;color:#fff}.smart-summary{font-size:12px;color:#5b3f91;background:#f5efff;border-radius:10px;padding:8px 10px;margin-top:6px;line-height:1.5}
 .search-tools{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 10px}
 .search-tools button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 10px;color:#62564d;font-size:12px}
 .search-hint{font-size:12px;color:var(--muted);margin:5px 2px 10px}
@@ -79,9 +80,10 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
   <button id="logoutBtn" class="secondary" style="background:#ffffff14;color:#fff;border-color:#ffffff33">登出</button>
 </div><div class="search-wrap">
       <input id="search" class="search" placeholder="🔎 搜尋商品編號、名稱、規格、廠商、分類、位置、條碼…">
+      <button id="smartBtn" class="smart-btn" title="智慧搜尋" aria-label="智慧搜尋">🧠</button>
       <button id="voiceBtn" class="voice-btn" title="語音搜尋" aria-label="語音搜尋">🎤</button>
     </div>
-    <div id="searchHint" class="search-hint">可以直接說：「白鐵 M6 螺絲」、「XX五金的螺絲」</div></div></header>
+    <div id="searchHint" class="search-hint">可以直接說：「白鐵 M6 螺絲」、「XX五金的螺絲」</div><div id="smartSummary" class="smart-summary hidden"></div></div></header>
 <main>
   <div class="quick"><button onclick="setTab('products')">📦 商品</button><button onclick="setTab('vendors')">🏭 廠商</button><button onclick="setTab('categories')">📂 分類</button><button onclick="setTab('locations')">📍 位置</button><button onclick="setTab('documents')">📷 貨單</button></div>
   <div class="grid">
@@ -115,7 +117,7 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 <label>廠商名稱</label><input id="vendorName" type="text" placeholder="例如：XX五金"><label>聯絡電話</label><input id="vendorPhone" type="text" placeholder="選填"><label>地址</label><input id="vendorAddress" type="text" placeholder="選填"><label>聯絡人</label><input id="vendorContact" type="text" placeholder="選填"><label>備註</label><textarea id="vendorNote" placeholder="選填"></textarea>
 <div class="form-actions"><button class="secondary" id="cancelVendor">取消</button><button class="primary" id="saveVendor">新增廠商</button></div></div></dialog>
 
-<dialog id="movementDialog" class="dialog"><div class="form"><h2 id="movementTitle">庫存異動</h2><div id="movementProduct" class="notice"></div><div class="small" style="margin-top:6px">這次操作會同時更新庫存並建立異動紀錄。</div><label>數量</label><input id="movementQty" type="number" min="1" value="1"><label>原因</label><input id="movementReason" type="text" placeholder="例如：進貨、銷售、損耗、盤點修正"><div class="form-actions"><button class="secondary" id="cancelMovement">取消</button><button class="primary" id="saveMovement">確認</button></div></div></dialog>
+<dialog id="movementDialog" class="dialog"><div class="form"><h2 id="movementTitle">庫存異動</h2><div id="movementProduct" class="notice"></div><div class="small" style="margin-top:6px">這次操作會同時更新庫存並建立異動紀錄。</div><label>數量</label><input id="movementQty" type="number" min="1" value="1"><label>原因</label><input id="movementReason" type="text" placeholder="例如：進貨、銷售、損耗、調整"><div class="form-actions"><button class="secondary" id="cancelMovement">取消</button><button class="primary" id="saveMovement">確認</button></div></div></dialog>
 
 <dialog id="documentDialog" class="dialog"><div class="form"><h2>📷 貨單／AI 整理</h2><div class="scan-box"><div style="font-size:38px">📷</div><h3>拍攝或選擇貨單</h3><div class="small">照片會先儲存在私有空間。真正 AI 辨識會在後端完成。</div><input id="documentPhoto" type="file" accept="image/*" capture="environment" style="margin-top:14px"></div><div id="docPreview"></div><div class="form-actions"><button class="secondary" id="cancelDocument">關閉</button><button class="primary" id="createDocument">建立待辨識貨單</button></div></div></dialog>
 
@@ -123,11 +125,13 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 const CONFIG={
   url:"https://mmmimwkgcsbgsbuiwnrs.supabase.co",
   key:"sb_publishable_7OoeJaMuSuNdZsP3KHpEEw_n8mpVdpf",
-  bucket:"inventory-photos"
+  bucket:"inventory-photos",
+  smartSearchFunction:"smart-search"
 };
 
 let sb=null, session=null, currentTab="products", editingId=null, pendingPhoto=null, movementId=null, movementType="入庫";
 let page=0, PAGE_SIZE=40, totalCount=0, productCache=[], vendorCache=[], categoryCache=[], locationCache=[];
+let searchMode="normal", smartQuery="", smartFilters=null;
 const today=new Date().toISOString().slice(0,10);
 const $=id=>document.getElementById(id);
 const fmt=n=>Number(n||0).toLocaleString("zh-TW");
@@ -144,7 +148,7 @@ async function boot(){
     const {data,error}=await sb.auth.getSession();
     if(error)throw error;
     session=data.session||null;
-    if(session){showApp();renderSearchTools();initVoiceSearch();await render(true)}else showLogin();
+    if(session){showApp();renderSearchTools();initSmartSearch();initVoiceSearch();await render(true)}else showLogin();
     sb.auth.onAuthStateChange(async(_event,newSession)=>{
       session=newSession||null;
       if(session){showApp();await render(true)}else showLogin();
@@ -159,7 +163,7 @@ $("loginForm").onsubmit=async e=>{
   try{
     const {data,error}=await sb.auth.signInWithPassword({email:$("loginEmail").value.trim(),password:$("loginPassword").value});
     if(error)throw error;
-    session=data.session;showApp();renderSearchTools();initVoiceSearch();await render(true);
+    session=data.session;showApp();renderSearchTools();initSmartSearch();initVoiceSearch();await render(true);
   }catch(e){setLoginMessage("登入失敗："+(e.message||"請檢查 Email 與密碼。"))}
   finally{$("loginBtn").disabled=false}
 };
@@ -238,6 +242,9 @@ function clearProductFilters(){
 function setQuickStockFilter(type){productFilters.stock=type;page=0;loadProducts();}
 
 async function loadProducts(){
+  if(searchMode==="smart" && smartQuery){
+    return runSmartSearch(smartQuery,{keepMode:true});
+  }
   const q=$("search").value.trim();
   let query=sb.from("products").select(
     "id,sku,name,spec,category,location,stock,min_stock,cost,price,photo_url,created_at,updated_at,user_id,vendor_id,category_id,location_id,barcode,unit,record_date,photo_path,note,parent_category,child_category",
@@ -247,11 +254,11 @@ async function loadProducts(){
     const safe=q.replace(/[(),]/g," ");
     query=query.or(`sku.ilike.%${safe}%,name.ilike.%${safe}%,spec.ilike.%${safe}%,category.ilike.%${safe}%,location.ilike.%${safe}%,barcode.ilike.%${safe}%,parent_category.ilike.%${safe}%,child_category.ilike.%${safe}%,note.ilike.%${safe}%`);
   }
-
-    if(productFilters.vendor)query=query.eq("vendor_id",productFilters.vendor);
-    if(productFilters.parent)query=query.ilike("parent_category",`%${productFilters.parent}%`);
-    if(productFilters.child)query=query.ilike("child_category",`%${productFilters.child}%`);
-    if(productFilters.stock==="out")query=query.eq("stock",0);
+  if(productFilters.vendor)query=query.eq("vendor_id",productFilters.vendor);
+  if(productFilters.parent)query=query.ilike("parent_category",`%${productFilters.parent}%`);
+  if(productFilters.child)query=query.ilike("child_category",`%${productFilters.child}%`);
+  if(productFilters.stock==="out")query=query.eq("stock",0);
+  if(productFilters.stock==="normal")query=query.gt("stock",0);
 
   const from=page*PAGE_SIZE,to=from+PAGE_SIZE-1;
   const {data,error,count}=await query.order("name").range(from,to);
@@ -260,9 +267,52 @@ async function loadProducts(){
   const rows=await Promise.all(productCache.map(async p=>({...p,_photo:await signedPhoto(p.photo_path)})));
   renderProducts(rows);
 }
+
+async function runSmartSearch(q,options={}){
+  q=String(q||"").trim();
+  if(!q)return;
+  const keepMode=!!options.keepMode;
+  const btn=$("smartBtn");
+  if(!keepMode){searchMode="smart";smartQuery=q;page=0;}
+  else if(!smartQuery)smartQuery=q;
+  if(btn){btn.disabled=true;btn.classList.add("busy");btn.textContent="…";}
+  if($("smartSummary")){ $("smartSummary").classList.remove("hidden"); $("smartSummary").textContent="🧠 正在理解搜尋內容…"; }
+  try{
+    const {data,error}=await sb.functions.invoke(CONFIG.smartSearchFunction,{body:{query:q,page,page_size:PAGE_SIZE}});
+    if(error)throw error;
+    if(!data?.ok)throw new Error(data?.error||"智慧搜尋失敗");
+    totalCount=Number(data.count||0);productCache=data.data||[];smartFilters=data.filters||null;
+    const rows=await Promise.all(productCache.map(async p=>({...p,_photo:await signedPhoto(p.photo_path)})));
+    renderProducts(rows);
+    const f=data.filters||{};const parts=[];
+    if(f.vendor)parts.push(`廠商：${f.vendor}`);
+    if(Array.isArray(f.name_keywords)&&f.name_keywords.length)parts.push(`商品：${f.name_keywords.join("、")}`);
+    if(Array.isArray(f.spec_keywords)&&f.spec_keywords.length)parts.push(`規格：${f.spec_keywords.join("、")}`);
+    if(Array.isArray(f.keywords)&&f.keywords.length)parts.push(`關鍵字：${f.keywords.join("、")}`);
+    if(Array.isArray(f.location_keywords)&&f.location_keywords.length)parts.push(`位置：${f.location_keywords.join("、")}`);
+    if($("smartSummary"))$("smartSummary").textContent=parts.length?`🧠 智慧搜尋：${parts.join("｜")}`:`🧠 智慧搜尋：${q}`;
+  }catch(e){
+    console.error(e);
+    searchMode="normal";smartQuery="";smartFilters=null;
+    if($("smartSummary"))$("smartSummary").textContent="智慧搜尋目前無法連線，已改用一般搜尋。";
+    const safe=q.replace(/[(),]/g," ");
+    $("search").value=q;
+    let query=sb.from("products").select("id,sku,name,spec,category,location,stock,min_stock,cost,price,photo_url,created_at,updated_at,user_id,vendor_id,category_id,location_id,barcode,unit,record_date,photo_path,note,parent_category,child_category",{count:"exact"});
+    query=query.or(`sku.ilike.%${safe}%,name.ilike.%${safe}%,spec.ilike.%${safe}%,category.ilike.%${safe}%,location.ilike.%${safe}%,barcode.ilike.%${safe}%,parent_category.ilike.%${safe}%,child_category.ilike.%${safe}%,note.ilike.%${safe}%`);
+    const from=page*PAGE_SIZE,to=from+PAGE_SIZE-1;
+    const r=await query.order("name").range(from,to);
+    if(r.error)throw new Error(r.error.message);
+    totalCount=r.count||0;productCache=r.data||[];
+    const rows=await Promise.all(productCache.map(async p=>({...p,_photo:await signedPhoto(p.photo_path)})));
+    renderProducts(rows);
+    if($("smartSummary"))$("smartSummary").textContent="⚪ 一般搜尋結果："+q;
+  }finally{
+    if(btn){btn.disabled=false;btn.classList.remove("busy");btn.textContent="🧠";}
+  }
+}
 function renderProducts(ps){
   $("app").innerHTML=`
-    <div class="toolbar"><button class="chip" onclick="setQuickStockFilter('low')">⚠️ 低庫存</button><button class="chip" onclick="setQuickStockFilter('out')">❌ 缺貨</button><button class="chip" onclick="filterProducts('photo')">📷 有照片</button><button class="chip" onclick="clearSearch()">清除搜尋</button></div>
+    <div class="toolbar"><button class="chip" onclick="setQuickStockFilter('low')">⚠️ 低庫存</button><button class="chip" onclick="setQuickStockFilter('out')">❌ 缺貨</button><button class="chip" onclick="filterProducts('photo')">📷 有照片</button><button class="chip" onclick="clearSearch()">清除搜尋</button>${searchMode==="smart"&&smartQuery?`<button class="chip" onclick="clearSmartSearch()">🧠 清除智慧搜尋</button>`:""}</div>
     ${filterPanelHTML()}
     <div class="addbar"><div class="hint">最相關結果／第 ${fmt(totalCount?page*PAGE_SIZE+1:0)}～${fmt(Math.min((page+1)*PAGE_SIZE,totalCount))} 筆，共 ${fmt(totalCount)} 筆</div><button class="primary" onclick="openProduct()">＋ 新增商品</button></div>
     <div class="list">${ps.length?ps.map(p=>{const st=Number(p.stock||0)===0?["缺貨","out"]:Number(p.stock||0)<=Number(p.min_stock||0)?["低庫存","low"]:["庫存正常","ok"];return `<div class="card product">
@@ -277,7 +327,8 @@ function renderProducts(ps){
   syncFilterUI();
 }
 function filterProducts(type){let ps=productCache;if(type==="low")ps=ps.filter(p=>Number(p.stock||0)<=Number(p.min_stock||0));if(type==="out")ps=ps.filter(p=>Number(p.stock||0)===0);if(type==="photo")ps=ps.filter(p=>!!p.photo_path);renderProducts(ps)}
-function clearSearch(){$("search").value="";clearProductFilters()}
+function clearSmartSearch(){searchMode="normal";smartQuery="";smartFilters=null;if($("smartSummary")){$("smartSummary").classList.add("hidden");$("smartSummary").textContent="";}page=0;loadProducts()}
+function clearSearch(){$("search").value="";clearSmartSearch();clearProductFilters()}
 function prevPage(){if(page>0){page--;loadProducts()}}function nextPage(){if((page+1)*PAGE_SIZE<totalCount){page++;loadProducts()}}
 
 function vendorName(id){return vendorCache.find(v=>v.id===id)?.name||"未設定廠商"}
@@ -303,6 +354,12 @@ function renderSearchTools(){
 function useRecentSearch(q){
   $("search").value=q;page=0;saveRecentSearch(q);loadProducts();
 }
+function initSmartSearch(){
+  const Btn=$("smartBtn");
+  if(!Btn)return;
+  Btn.onclick=()=>{const q=$("search").value.trim();if(!q)return alert("請先輸入或說出想找的商品，例如：白鐵 M6 螺絲、XX五金的螺絲");saveRecentSearch(q);runSmartSearch(q)};
+}
+
 function initVoiceSearch(){
   const Btn=$("voiceBtn");
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -319,7 +376,7 @@ function initVoiceSearch(){
   recognition.onstart=()=>{Btn.classList.add("listening");Btn.textContent="⏺";$("searchHint").textContent="正在聽，請直接說商品名稱或規格…"};
   recognition.onresult=e=>{
     const text=e.results?.[0]?.[0]?.transcript?.trim()||"";
-    if(text){$("search").value=text;saveRecentSearch(text);page=0;loadProducts();}
+    if(text){$("search").value=text;saveRecentSearch(text);page=0;runSmartSearch(text);}
   };
   recognition.onerror=e=>{
     Btn.classList.remove("listening");Btn.textContent="🎤";
@@ -448,10 +505,10 @@ async function removeProduct(id){if(!confirm("確定刪除這個商品？"))retu
 
 $("documentPhoto").onchange=e=>{const f=e.target.files[0];if(!f)return;$("docPreview").innerHTML=`<div class="notice">已選擇貨單：${esc(f.name)}</div>`};
 $("cancelDocument").onclick=()=>$("documentDialog").close();
-$("createDocument").onclick=async()=>{const f=$("documentPhoto").files[0];if(!f)return alert("請先選擇貨單照片");const id=crypto.randomUUID(),ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg",path=`${session.user.id}/documents/${id}.${ext}`;const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg"});if(up.error)return alert("貨單照片上傳失敗："+up.error.message);const ins=await sb.from("purchase_documents").insert({id,status:"待辨識",document_date:today,image_path:path});if(ins.error)return alert("建立貨單失敗："+ins.error.message);$("documentDialog").close();await render();alert("貨單已儲存。下一步可以接真正 AI 辨識。")};
+$("createDocument").onclick=async()=>{const f=$("documentPhoto").files[0];if(!f)return alert("請先選擇貨單照片");const id=crypto.randomUUID(),ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg",path=`${session.user.id}/documents/${id}.${ext}`;const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg"});if(up.error)return alert("貨單照片上傳失敗："+up.error.message);const ins=await sb.from("purchase_documents").insert({id,status:"待辨識",document_date:today,image_path:path});if(ins.error)return alert("建立貨單失敗："+ins.error.message);$("documentDialog").close();await render();alert("貨單已儲存。目前先完成貨單雲端保存；貨單 AI 辨識可再接後端功能。")};
 
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;page=0;render()});
-$("search").oninput=()=>{page=0;if(currentTab!=="products")currentTab="products";updateSearchHint();loadProducts().catch(e=>setAppMessage(e.message))};
+$("search").oninput=()=>{page=0;searchMode="normal";smartQuery="";smartFilters=null;if($("smartSummary")){$("smartSummary").classList.add("hidden");$("smartSummary").textContent="";}if(currentTab!=="products")currentTab="products";updateSearchHint();loadProducts().catch(e=>setAppMessage(e.message))};
 $("search").addEventListener("change",()=>saveRecentSearch($("search").value));
 
 $("addBtn").onclick=()=>currentTab==="vendors"?openVendor():openProduct();
