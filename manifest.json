@@ -1,0 +1,11 @@
+{
+  "name": "我的庫存",
+  "short_name": "我的庫存",
+  "lang": "zh-Hant",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f1ea",
+  "theme_color": "#3b3028",
+  "description": "五金商品庫存管理系統，支援離線編輯與恢復網路後自動同步。"
+}
