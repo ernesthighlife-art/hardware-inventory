@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#3b3028">
 <title>我的庫存</title>
+<link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#f5f1ea;--surface:#fffdf9;--text:#2b241e;--muted:#81766b;--line:#e5dbcf;--accent:#c7782a;--accentBg:#fff1df;--success:#277354;--successBg:#e9f6ef;--warn:#a56817;--warnBg:#fff5df;--danger:#ad3d32;--dangerBg:#fff0ed;--shadow:0 8px 28px rgba(78,58,42,.08)}
@@ -56,6 +57,14 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 .quick-search-box{display:flex;gap:8px;overflow:auto;margin-bottom:10px}
 .quick-search-box button{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-size:12px;color:#62564d}
 .voice-note{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+
+.offline-tools{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:8px}
+.network-pill{font-size:12px;padding:6px 9px;border-radius:999px;background:#ffffff16;color:#f6eee7;border:1px solid #ffffff22}
+.network-pill.offline{background:#6d432f;color:#fff4e8}
+.network-pill.pending{background:#7a4a19;color:#fff}
+.offline-tools button{border:1px solid #ffffff33;background:#ffffff10;color:#fff;border-radius:10px;padding:6px 10px;font-size:12px;font-weight:750}
+.offline-note{background:#f4eadf;color:#6e4b2f;border:1px solid #e7d5c2;border-radius:12px;padding:9px 11px;font-size:12px;line-height:1.55;margin-bottom:10px}
+.sync-progress{font-size:12px;color:var(--muted);margin-top:6px}
 </style>
 </head>
 <body>
@@ -83,8 +92,9 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
       <button id="smartBtn" class="smart-btn" title="智慧搜尋" aria-label="智慧搜尋">🧠</button>
       <button id="voiceBtn" class="voice-btn" title="語音搜尋" aria-label="語音搜尋">🎤</button>
     </div>
-    <div id="searchHint" class="search-hint">可以直接說：「白鐵 M6 螺絲」、「XX五金的螺絲」</div><div id="smartSummary" class="smart-summary hidden"></div></div></header>
+    <div id="searchHint" class="search-hint">可以直接說：「白鐵 M6 螺絲」、「XX五金的螺絲」</div><div id="smartSummary" class="smart-summary hidden"></div><div class="offline-tools"><span id="networkStatus" class="network-pill">準備中…</span><span id="syncStatus" class="network-pill hidden"></span><button id="syncBtn" type="button">☁️ 同步</button><button id="downloadOfflineBtn" type="button">⬇️ 下載離線資料</button></div></div></header>
 <main>
+  <div id="offlineNote" class="offline-note hidden"></div>
   <div class="quick"><button onclick="setTab('products')">📦 商品</button><button onclick="setTab('vendors')">🏭 廠商</button><button onclick="setTab('categories')">📂 分類</button><button onclick="setTab('locations')">📍 位置</button><button onclick="setTab('documents')">📷 貨單</button></div>
   <div class="grid">
     <div class="card stat"><span class="label">商品種類</span><strong id="statProducts">0</strong><small>雲端商品</small></div>
@@ -529,7 +539,410 @@ async function render(first=false){
     setAppMessage("系統載入失敗："+(e.message||String(e)));
   }
 }
-boot();
+
+
+/* ==================== 離線編輯／同步層 ==================== */
+const OFF_DB = "hardware_inventory_offline_v1";
+const OFF_VERSION = 1;
+const OFF_STORES = ["products","vendors","categories","locations","transactions","documents","queue","files","meta"];
+let offlineDB=null;
+let offlineReady=false;
+let syncing=false;
+let syncErrorCount=0;
+
+function openOfflineDB(){
+  return new Promise((resolve,reject)=>{
+    if(offlineDB){resolve(offlineDB);return;}
+    const req=indexedDB.open(OFF_DB,OFF_VERSION);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      for(const store of OFF_STORES){
+        if(!db.objectStoreNames.contains(store)){
+          if(store==="queue"||store==="files"||store==="meta") db.createObjectStore(store,{keyPath:"id"});
+          else db.createObjectStore(store,{keyPath:"id"});
+        }
+      }
+      if(!db.objectStoreNames.contains("queue")) db.createObjectStore("queue",{keyPath:"id"});
+    };
+    req.onsuccess=()=>{offlineDB=req.result;offlineReady=true;resolve(offlineDB)};
+    req.onerror=()=>reject(req.error||new Error("離線資料庫無法啟動"));
+  });
+}
+function idbStore(name,mode="readonly"){return offlineDB.transaction(name,mode).objectStore(name)}
+function idbGetAll(name){return new Promise((resolve,reject)=>{const r=idbStore(name).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)})}
+function idbGet(name,id){return new Promise((resolve,reject)=>{const r=idbStore(name).get(id);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)})}
+function idbPut(name,value){return new Promise((resolve,reject)=>{const r=idbStore(name,"readwrite").put(value);r.onsuccess=()=>resolve(value);r.onerror=()=>reject(r.error)})}
+function idbDelete(name,id){return new Promise((resolve,reject)=>{const r=idbStore(name,"readwrite").delete(id);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
+function idbClear(name){return new Promise((resolve,reject)=>{const r=idbStore(name,"readwrite").clear();r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
+async function cacheRows(store,rows){for(const row of (rows||[])) await idbPut(store,row)}
+async function setMeta(key,value){await idbPut("meta",{id:key,value})}
+async function getMeta(key){const x=await idbGet("meta",key);return x?.value}
+
+async function getQueue(){return (await idbGetAll("queue")).sort((a,b)=>(a.created_at||0)-(b.created_at||0))}
+async function queueCount(){return (await getQueue()).length}
+async function updateOfflineUI(){
+  const online=navigator.onLine;
+  const count=await queueCount().catch(()=>0);
+  const n=$("networkStatus"), s=$("syncStatus"), note=$("offlineNote");
+  if(n){n.className="network-pill"+(online?"":" offline");n.textContent=online?"🟢 線上":"🔴 離線"}
+  if(s){s.className="network-pill"+(count?" pending":" hidden");s.textContent=count?`待同步 ${count} 筆`:""}
+  if(note){
+    if(!online){note.classList.remove("hidden");note.textContent=count?`目前是離線模式。你仍可新增／編輯商品、入庫、出庫；共有 ${count} 筆修改等候連線後同步。AI 智慧搜尋需要網路。`:`目前是離線模式。你仍可新增／編輯商品、入庫、出庫；連線恢復後會自動同步。AI 智慧搜尋需要網路。`;}
+    else if(count){note.classList.remove("hidden");note.textContent=`已恢復網路，正在等待同步 ${count} 筆離線修改。你也可以按「☁️ 同步」。`}
+    else note.classList.add("hidden");
+  }
+}
+
+async function enqueue(type,payload,fileBlob=null){
+  const id=crypto.randomUUID();
+  let fileKey=null;
+  if(fileBlob){
+    fileKey=crypto.randomUUID();
+    await idbPut("files",{id:fileKey,blob:fileBlob,name:fileBlob.name||"image.jpg",type:fileBlob.type||"image/jpeg"});
+  }
+  await idbPut("queue",{id,type,payload,fileKey,created_at:Date.now(),user_id:session?.user?.id||null});
+  await updateOfflineUI();
+  return id;
+}
+
+async function cacheProduct(p){if(p?.id)await idbPut("products",p)}
+async function cacheVendor(v){if(v?.id)await idbPut("vendors",v)}
+async function cacheTransaction(t){if(t?.id)await idbPut("transactions",t)}
+async function cacheDocument(d){if(d?.id)await idbPut("documents",d)}
+
+function localMatches(p,q){
+  if(!q)return true;
+  const vendor=vendorCache.find(v=>v.id===p.vendor_id)?.name||"";
+  const hay=[p.sku,p.name,p.spec,p.category,p.location,p.barcode,p.parent_category,p.child_category,p.note,vendor].filter(Boolean).join(" ").toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
+function applyLocalFilters(items){
+  return items.filter(p=>{
+    if(productFilters.vendor && p.vendor_id!==productFilters.vendor)return false;
+    if(productFilters.parent && !String(p.parent_category||"").toLowerCase().includes(productFilters.parent.toLowerCase()))return false;
+    if(productFilters.child && !String(p.child_category||"").toLowerCase().includes(productFilters.child.toLowerCase()))return false;
+    const stock=Number(p.stock||0),min=Number(p.min_stock||0);
+    if(productFilters.stock==="out" && stock!==0)return false;
+    if(productFilters.stock==="low" && !(stock<=min))return false;
+    if(productFilters.stock==="normal" && !(stock>0))return false;
+    return true;
+  });
+}
+
+async function loadLocalMeta(){
+  vendorCache=await idbGetAll("vendors");
+  categoryCache=await idbGetAll("categories");
+  locationCache=await idbGetAll("locations");
+  vendorCache.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"zh-TW"));
+  categoryCache.sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0))||String(a.name||"").localeCompare(String(b.name||""),"zh-TW"));
+  locationCache.sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0))||String(a.name||"").localeCompare(String(b.name||""),"zh-TW"));
+}
+
+async function loadMeta(){
+  if(!navigator.onLine){await loadLocalMeta();return}
+  try{
+    const [v,c,l]=await Promise.all([
+      sb.from("vendors").select("id,name,phone,address,contact_name,note,user_id").order("name").limit(1000),
+      sb.from("categories").select("id,name,parent_id,sort_order,note,user_id").order("sort_order").order("name").limit(1000),
+      sb.from("locations").select("id,name,parent_id,sort_order,note,user_id").order("sort_order").order("name").limit(1000)
+    ]);
+    if(v.error)throw new Error("讀取廠商資料失敗："+v.error.message);
+    if(c.error)throw new Error("讀取分類資料失敗："+c.error.message);
+    if(l.error)throw new Error("讀取位置資料失敗："+l.error.message);
+    vendorCache=v.data||[];categoryCache=c.data||[];locationCache=l.data||[];
+    await cacheRows("vendors",vendorCache);await cacheRows("categories",categoryCache);await cacheRows("locations",locationCache);
+    await setMeta("last_meta_sync",Date.now());
+  }catch(e){
+    await loadLocalMeta();
+    if(!vendorCache.length&&!categoryCache.length&&!locationCache.length)throw e;
+  }
+}
+
+async function loadStats(){
+  if(navigator.onLine){
+    const pc=await sb.from("products").select("id",{count:"exact",head:true});
+    if(pc.error)throw new Error("讀取商品資料失敗："+pc.error.message);
+    const vc=await sb.from("vendors").select("id",{count:"exact",head:true});
+    if(vc.error)throw new Error("讀取廠商資料失敗："+vc.error.message);
+    const local=await idbGetAll("products").catch(()=>[]);
+    const qty=local.reduce((a,p)=>a+Number(p.stock||0),0);
+    const lowCount=local.filter(p=>Number(p.stock||0)<=Number(p.min_stock||0)).length;
+    $("statProducts").textContent=fmt(pc.count||local.length||0);
+    $("statVendors").textContent=fmt(vc.count||vendorCache.length||0);
+    $("statQty").textContent=local.length?fmt(qty):"—";
+    $("statLow").textContent=local.length?fmt(lowCount):"—";
+  }else{
+    const local=await idbGetAll("products");
+    const qty=local.reduce((a,p)=>a+Number(p.stock||0),0);
+    const lowCount=local.filter(p=>Number(p.stock||0)<=Number(p.min_stock||0)).length;
+    $("statProducts").textContent=fmt(local.length);$("statVendors").textContent=fmt(vendorCache.length);$("statQty").textContent=fmt(qty);$("statLow").textContent=fmt(lowCount);
+  }
+}
+
+async function loadProducts(){
+  if(!navigator.onLine){
+    await loadLocalMeta();
+    const all=await idbGetAll("products");
+    const q=$("search").value.trim();
+    let items=all.filter(p=>localMatches(p,q));
+    items=applyLocalFilters(items).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"zh-TW"));
+    totalCount=items.length;const from=page*PAGE_SIZE;productCache=items.slice(from,from+PAGE_SIZE);
+    renderProducts(productCache.map(p=>({...p,_photo:""})));
+    if($("smartSummary")){$("smartSummary").classList.remove("hidden");$("smartSummary").textContent="🔴 離線搜尋：使用最後一次同步的資料";}
+    return;
+  }
+  if(searchMode==="smart"&&smartQuery){return runSmartSearch(smartQuery,{keepMode:true})}
+  const q=$("search").value.trim();
+  let query=sb.from("products").select("id,sku,name,spec,category,location,stock,min_stock,cost,price,photo_url,created_at,updated_at,user_id,vendor_id,category_id,location_id,barcode,unit,record_date,photo_path,note,parent_category,child_category",{count:"exact"});
+  if(q){const safe=q.replace(/[(),]/g," ");query=query.or(`sku.ilike.%${safe}%,name.ilike.%${safe}%,spec.ilike.%${safe}%,category.ilike.%${safe}%,location.ilike.%${safe}%,barcode.ilike.%${safe}%,parent_category.ilike.%${safe}%,child_category.ilike.%${safe}%,note.ilike.%${safe}%`)}
+  if(productFilters.vendor)query=query.eq("vendor_id",productFilters.vendor);
+  if(productFilters.parent)query=query.ilike("parent_category",`%${productFilters.parent}%`);
+  if(productFilters.child)query=query.ilike("child_category",`%${productFilters.child}%`);
+  if(productFilters.stock==="out")query=query.eq("stock",0);
+  if(productFilters.stock==="low")query=query.lte("stock",productFilters._minHack??0);
+  if(productFilters.stock==="normal")query=query.gt("stock",0);
+  const from=page*PAGE_SIZE,to=from+PAGE_SIZE-1;
+  const {data,error,count}=await query.order("name").range(from,to);
+  if(error)throw new Error("讀取商品清單失敗："+error.message);
+  totalCount=count||0;productCache=data||[];await cacheRows("products",productCache);
+  const rows=await Promise.all(productCache.map(async p=>({...p,_photo:await signedPhoto(p.photo_path)})));
+  renderProducts(rows);
+}
+
+const _originalRunSmartSearch=runSmartSearch;
+async function runSmartSearch(q,options={}){
+  if(!navigator.onLine){searchMode="normal";smartQuery="";smartFilters=null;$("search").value=q;await loadProducts();if($("smartSummary")){$("smartSummary").classList.remove("hidden");$("smartSummary").textContent="🔴 目前離線，智慧搜尋需要網路；已改用一般搜尋。";}return;}
+  return _originalRunSmartSearch(q,options);
+}
+
+async function openProduct(id=null){
+  await loadMeta();editingId=id;pendingPhoto=null;let p=null;
+  if(id){
+    if(navigator.onLine){
+      const r=await sb.from("products").select("*").eq("id",id).single();
+      if(r.error){p=await idbGet("products",id);if(!p)return alert("讀取商品失敗："+r.error.message)}else{p=r.data;await cacheProduct(p)}
+    }else p=await idbGet("products",id);
+  }
+  $("productDialogTitle").textContent=p?"編輯商品":"新增商品";setStockFieldState(!!p);
+  $("name").value=p?.name||"";$("sku").value=p?.sku||"";$("spec").value=p?.spec||"";$("barcode").value=p?.barcode||"";
+  $("vendor").innerHTML=`<option value="">未設定廠商</option>`+vendorCache.map(v=>`<option value="${v.id}" ${p?.vendor_id===v.id?"selected":""}>${esc(v.name)}</option>`).join("");
+  $("unit").value=p?.unit||"個";$("parentCategory").value=p?.parent_category||"";$("childCategory").value=p?.child_category||"";$("location").value=p?.location||"";$("date").value=p?.record_date||today;
+  $("qty").value=p?.stock??0;$("minQty").value=p?.min_stock??0;$("cost").value=p?.cost??"";$("price").value=p?.price??"";$("note").value=p?.note||"";
+  $("preview").style.display="none";$("preview").src="";
+  if(p?.photo_path&&!navigator.onLine){/* 離線只顯示資料，不嘗試產生失效的簽名網址 */}
+  else if(p?.photo_path){const url=await signedPhoto(p.photo_path);if(url){$("preview").src=url;$("preview").style.display="block"}}
+  $("photo").value="";$("productDialog").showModal();
+}
+
+async function saveProductOfflineOrOnline(){
+  const user=(await sb.auth.getUser()).data.user;if(!user)return;
+  const name=$("name").value.trim();if(!name)return alert("請輸入商品名稱");$("saveProduct").disabled=true;
+  try{
+    const base={name,sku:$("sku").value.trim()||null,spec:$("spec").value.trim()||null,barcode:$("barcode").value.trim()||null,vendor_id:$("vendor").value||null,unit:$("unit").value.trim()||"個",parent_category:$("parentCategory").value.trim()||null,child_category:$("childCategory").value.trim()||null,location:$("location").value.trim()||null,record_date:$("date").value||today,min_stock:Math.max(0,Number($("minQty").value||0)),cost:Math.max(0,Number($("cost").value||0)),price:Math.max(0,Number($("price").value||0)),note:$("note").value.trim()||null,category:$("parentCategory").value.trim()||null};
+    const isNew=!editingId;const id=editingId||crypto.randomUUID();
+    let current=isNew?{id,user_id:user.id,stock:Math.max(0,Number($("qty").value||0)),created_at:new Date().toISOString()}:await idbGet("products",id);
+    current=current||{id,user_id:user.id,stock:0,created_at:new Date().toISOString()};
+    const obj={...current,...base,id,user_id:user.id,updated_at:new Date().toISOString()};
+    const file=$("photo").files[0]||pendingPhoto;
+    if(!navigator.onLine){
+      await cacheProduct(obj);
+      await enqueue(isNew?"product_create":"product_update",obj,file||null);
+      $("productDialog").close();page=0;await render();alert("已儲存在本機。恢復網路後會自動同步雲端。");return;
+    }
+    let photoPath=obj.photo_path||null;
+    let oldPhoto=current?.photo_path||null;
+    if(file){photoPath=await uploadPhoto(file,id);obj.photo_path=photoPath}
+    if(isNew){const r=await sb.from("products").insert(obj);if(r.error)throw r.error}else{const r=await sb.from("products").update({...obj,updated_at:new Date().toISOString()}).eq("id",id);if(r.error)throw r.error}
+    if(file&&oldPhoto&&oldPhoto!==photoPath)await sb.storage.from(CONFIG.bucket).remove([oldPhoto]).catch(()=>{});
+    await cacheProduct(obj);$("productDialog").close();page=0;await render();
+  }catch(e){alert("儲存失敗："+(e.message||String(e)))}finally{$("saveProduct").disabled=false}
+}
+$("saveProduct").onclick=saveProductOfflineOrOnline;
+
+async function saveVendorOfflineOrOnline(){
+  const name=$("vendorName").value.trim();if(!name)return alert("請輸入廠商名稱");
+  const id=crypto.randomUUID();const obj={id,user_id:session.user.id,name,phone:$("vendorPhone").value.trim()||null,address:$("vendorAddress").value.trim()||null,contact_name:$("vendorContact").value.trim()||null,note:$("vendorNote").value.trim()||null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  try{
+    if(!navigator.onLine){await cacheVendor(obj);await enqueue("vendor_create",obj);$("vendorDialog").close();await render();alert("廠商已儲存在本機，恢復網路後會同步雲端。");return}
+    const r=await sb.from("vendors").insert(obj);if(r.error)throw r.error;await cacheVendor(obj);$("vendorDialog").close();await render();
+  }catch(e){alert("新增廠商失敗："+(e.message||String(e)))}
+}
+$("saveVendor").onclick=saveVendorOfflineOrOnline;
+
+async function saveMovementOfflineOrOnline(){
+  const qty=Number($("movementQty").value);if(!Number.isFinite(qty)||qty<=0)return alert("請輸入正確數量");
+  const reason=$("movementReason").value.trim()||null;$("saveMovement").disabled=true;
+  try{
+    const p=await idbGet("products",movementId)||productCache.find(x=>x.id===movementId);
+    const currentStock=Number(p?.stock||0);if(movementType==="出庫"&&qty>currentStock)return alert("出庫數量不可超過目前庫存");
+    if(!navigator.onLine){
+      const before=currentStock,delta=movementType==="入庫"?qty:-qty,after=before+delta;
+      const updated={...p,stock:after,updated_at:new Date().toISOString(),record_date:today};
+      await cacheProduct(updated);
+      const tx={id:crypto.randomUUID(),user_id:session.user.id,product_id:movementId,type:movementType,quantity:qty,delta,before_stock:before,after_stock:after,reason,created_at:new Date().toISOString(),_local:true};
+      await cacheTransaction(tx);await enqueue("movement",{product_id:movementId,type:movementType,quantity:qty,reason});
+      $("movementDialog").close();page=0;await render();alert("庫存異動已儲存在本機。恢復網路後會同步雲端。");return;
+    }
+    const {data,error}=await sb.rpc("change_stock",{p_product_id:movementId,p_type:movementType,p_quantity:qty,p_reason:reason});if(error)throw error;await cacheProduct(data);
+    $("movementDialog").close();page=0;await render();
+  }catch(e){alert("庫存異動失敗："+(e.message||String(e)))}finally{$("saveMovement").disabled=false}
+}
+$("saveMovement").onclick=saveMovementOfflineOrOnline;
+
+async function removeProductOfflineOrOnline(id){
+  if(!confirm("確定刪除這個商品？"))return;
+  const p=await idbGet("products",id)||productCache.find(x=>x.id===id);
+  try{
+    if(!navigator.onLine){await idbDelete("products",id);await enqueue("product_delete",{id,photo_path:p?.photo_path||null});await render();alert("已在本機刪除。恢復網路後會同步刪除雲端資料。");return}
+    if(p?.photo_path)await sb.storage.from(CONFIG.bucket).remove([p.photo_path]);const r=await sb.from("products").delete().eq("id",id);if(r.error)throw r.error;await idbDelete("products",id);await render();
+  }catch(e){alert("刪除失敗："+(e.message||String(e)))}
+}
+removeProduct=removeProductOfflineOrOnline;
+
+async function uploadPhoto(file,productId){
+  if(!navigator.onLine)throw new Error("目前離線，照片會在儲存在本機並於恢復網路後同步。");
+  const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+  const path=`${session.user.id}/products/${productId}-${Date.now()}.${ext}`;
+  const {error}=await sb.storage.from(CONFIG.bucket).upload(path,file,{contentType:file.type||"image/jpeg",upsert:false});if(error)throw error;return path;
+}
+
+async function showProductHistoryOfflineOrOnline(id){
+  if(!navigator.onLine){const all=await idbGetAll("transactions");const rows=all.filter(t=>t.product_id===id).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0,50);return alert(rows.map(t=>`${new Date(t.created_at).toLocaleString("zh-TW")}｜${t.type}｜${t.delta>0?"+":""}${t.delta}｜${t.before_stock} → ${t.after_stock}｜${t.reason||""}${t._local?"｜待同步":""}`).join("\\n")||"目前沒有異動紀錄")}
+  const r=await sb.from("inventory_transactions").select("created_at,type,delta,before_stock,after_stock,reason").eq("product_id",id).order("created_at",{ascending:false}).limit(50);if(r.error)return alert("讀取紀錄失敗："+r.error.message);for(const t of (r.data||[]))await cacheTransaction({...t,id:crypto.randomUUID(),product_id:id});alert((r.data||[]).map(t=>`${new Date(t.created_at).toLocaleString("zh-TW")}｜${t.type}｜${t.delta>0?"+":""}${t.delta}｜${t.before_stock} → ${t.after_stock}｜${t.reason||""}`).join("\\n")||"目前沒有異動紀錄")
+}
+showProductHistory=showProductHistoryOfflineOrOnline;
+
+async function renderTransactions(){
+  let data=[];
+  if(navigator.onLine){
+    const r=await sb.from("inventory_transactions").select("id,product_id,type,quantity,delta,before_stock,after_stock,reason,created_at").order("created_at",{ascending:false}).limit(300);
+    if(r.error)throw new Error("讀取異動紀錄失敗："+r.error.message);data=r.data||[];for(const t of data)await cacheTransaction(t);
+  }else data=(await idbGetAll("transactions")).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0,300);
+  const localProducts=await idbGetAll("products");
+  const findName=id=>localProducts.find(p=>p.id===id)?.name||productCache.find(p=>p.id===id)?.name||"商品";
+  $("app").innerHTML=`<div class="card section"><h3>📋 最近 ${navigator.onLine?"300":"300（含離線待同步）"} 筆異動</h3><div class="table-wrap"><table class="table"><thead><tr><th>時間</th><th>商品</th><th>類型</th><th>數量</th><th>異動前</th><th>異動後</th><th>原因</th></tr></thead><tbody>${(data||[]).map(t=>`<tr><td>${esc(new Date(t.created_at).toLocaleString("zh-TW"))}</td><td>${esc(findName(t.product_id))}</td><td>${esc(t.type)}${t._local?" <span class=\"badge low\">待同步</span>":""}</td><td class="num">${t.delta>0?"+":""}${fmt(t.delta)}</td><td class="num">${fmt(t.before_stock)}</td><td class="num">${fmt(t.after_stock)}</td><td>${esc(t.reason||"")}</td></tr>`).join("")||`<tr><td colspan="7" style="text-align:center;padding:30px">尚無異動紀錄</td></tr>`}</tbody></table></div></div>`;
+}
+
+async function renderDocuments(){
+  let docs=[];
+  if(navigator.onLine){const r=await sb.from("purchase_documents").select("id,vendor_id,document_number,document_date,image_path,status,ai_summary,created_at,updated_at").order("created_at",{ascending:false}).limit(100);if(r.error)throw new Error("讀取貨單失敗："+r.error.message);docs=r.data||[];for(const d of docs)await cacheDocument(d)}else docs=(await idbGetAll("documents")).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
+  const vName=id=>vendorCache.find(v=>v.id===id)?.name||"未設定廠商";
+  $("app").innerHTML=`<div class="addbar"><div class="hint">貨單照片可以先離線保存，連線後再同步</div><button class="primary" onclick="$(\"documentDialog\").showModal()">＋ 新增貨單</button></div><div class="list">${docs.map(d=>`<div class="card section"><div class="row"><div><strong>📷 ${esc(d.document_number||"未命名貨單")}</strong><div class="meta">${esc(d.document_date||"")}　🏭 ${esc(vName(d.vendor_id))}<br>狀態：${esc(d.status||"待辨識")}${d._local?"　（待同步）":""}</div></div></div>${d.ai_summary?`<div class="notice" style="margin-top:10px">${esc(d.ai_summary)}</div>`:""}</div>`).join("")||`<div class="card empty">尚無貨單</div>`}</div>`;
+}
+
+async function createDocumentOfflineOrOnline(){
+  const f=$("documentPhoto").files[0];if(!f)return alert("請先選擇貨單照片");
+  const id=crypto.randomUUID();const ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";const path=`${session.user.id}/documents/${id}.${ext}`;
+  const base={id,user_id:session.user.id,status:"待辨識",document_date:today,image_path:path,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  try{
+    if(!navigator.onLine){await cacheDocument({...base,_local:true});await enqueue("document_create",base,f);$("documentDialog").close();await render();alert("貨單已儲存在本機。恢復網路後會同步雲端；AI 辨識仍需網路。");return}
+    const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg"});if(up.error)throw up.error;const ins=await sb.from("purchase_documents").insert(base);if(ins.error)throw ins.error;await cacheDocument(base);$("documentDialog").close();await render();alert("貨單已儲存。AI 辨識功能會在後端完成。");
+  }catch(e){alert("建立貨單失敗："+(e.message||String(e)))}
+}
+$("createDocument").onclick=createDocumentOfflineOrOnline;
+
+async function syncOne(item){
+  const fileRec=item.fileKey?await idbGet("files",item.fileKey):null;
+  const user=session?.user?.id;if(!user)throw new Error("尚未登入");
+  if(item.type==="product_create"){
+    const obj={...item.payload,user_id:user};
+    if(fileRec?.blob)obj.photo_path=await uploadPhoto(fileRec.blob,obj.id);
+    const r=await sb.from("products").upsert(obj,{onConflict:"id"});if(r.error)throw r.error;await cacheProduct(obj);
+  }else if(item.type==="product_update"){
+    const obj={...item.payload,user_id:user};const old=await idbGet("products",obj.id);
+    if(fileRec?.blob)obj.photo_path=await uploadPhoto(fileRec.blob,obj.id);
+    const r=await sb.from("products").update({...obj,updated_at:new Date().toISOString()}).eq("id",obj.id);if(r.error)throw r.error;await cacheProduct(obj);if(fileRec?.blob&&old?.photo_path&&old.photo_path!==obj.photo_path)await sb.storage.from(CONFIG.bucket).remove([old.photo_path]).catch(()=>{});
+  }else if(item.type==="vendor_create"){
+    const r=await sb.from("vendors").upsert({...item.payload,user_id:user},{onConflict:"id"});if(r.error)throw r.error;await cacheVendor(item.payload);
+  }else if(item.type==="movement"){
+    const p=item.payload;const r=await sb.rpc("change_stock",{p_product_id:p.product_id,p_type:p.type,p_quantity:p.quantity,p_reason:p.reason});if(r.error)throw r.error;await cacheProduct(r.data);
+    const oldLocal=await idbGetAll("transactions");for(const t of oldLocal.filter(t=>t._local&&t.product_id===p.product_id&&t.type===p.type&&Number(t.quantity)===Number(p.quantity)).slice(-1))await idbDelete("transactions",t.id);
+  }else if(item.type==="product_delete"){
+    const r=await sb.from("products").delete().eq("id",item.payload.id);if(r.error)throw r.error;if(item.payload.photo_path)await sb.storage.from(CONFIG.bucket).remove([item.payload.photo_path]).catch(()=>{});await idbDelete("products",item.payload.id);
+  }else if(item.type==="document_create"){
+    if(fileRec?.blob){const up=await sb.storage.from(CONFIG.bucket).upload(item.payload.image_path,fileRec.blob,{contentType:fileRec.blob.type||"image/jpeg"});if(up.error)throw up.error}
+    const r=await sb.from("purchase_documents").upsert(item.payload,{onConflict:"id"});if(r.error)throw r.error;await cacheDocument(item.payload);
+  }
+  await idbDelete("queue",item.id);if(item.fileKey)await idbDelete("files",item.fileKey);
+}
+
+async function syncOfflineChanges(){
+  if(syncing||!navigator.onLine||!session)return;
+  syncing=true;syncErrorCount=0;await updateOfflineUI();
+  try{
+    const q=await getQueue();
+    for(const item of q){
+      if(!navigator.onLine)break;
+      try{await syncOne(item)}catch(e){syncErrorCount++;console.error("離線同步失敗",item,e);break}
+      await updateOfflineUI();
+    }
+    await refreshAllCachesAfterSync();
+  }finally{syncing=false;await updateOfflineUI();if(syncErrorCount){alert("有部分離線修改尚未同步成功。請確認網路後再按「☁️ 同步」。")}}
+}
+
+async function refreshAllCachesAfterSync(){
+  if(!navigator.onLine||!session)return;
+  try{
+    await loadMeta();
+    // 只重新抓目前商品頁，避免每次同步都下載全部商品。
+    if(currentTab==="products")await loadProducts();
+    else await render();
+  }catch(e){console.warn("同步後刷新失敗",e)}
+}
+
+async function downloadOfflineData(){
+  if(!navigator.onLine)return alert("目前離線，請先恢復網路再下載離線資料。");
+  const btn=$("downloadOfflineBtn");if(btn)btn.disabled=true;
+  const old=$("offlineNote");
+  try{
+    if(old){old.classList.remove("hidden");old.textContent="正在下載離線商品資料，商品很多時可能需要一點時間…"}
+    await loadMeta();let offset=0,batch=500,total=0;
+    while(true){
+      const r=await sb.from("products").select("id,sku,name,spec,category,location,stock,min_stock,cost,price,photo_url,created_at,updated_at,user_id,vendor_id,category_id,location_id,barcode,unit,record_date,photo_path,note,parent_category,child_category").range(offset,offset+batch-1).order("name");
+      if(r.error)throw r.error;const rows=r.data||[];if(!rows.length)break;await cacheRows("products",rows);total+=rows.length;if(old)old.textContent=`正在下載離線資料… 已保存 ${fmt(total)} 筆商品`;if(rows.length<batch)break;offset+=batch;
+    }
+    const tx=await sb.from("inventory_transactions").select("id,product_id,type,quantity,delta,before_stock,after_stock,reason,created_at").order("created_at",{ascending:false}).limit(1000);if(!tx.error)await cacheRows("transactions",tx.data||[]);
+    const docs=await sb.from("purchase_documents").select("id,vendor_id,document_number,document_date,image_path,status,ai_summary,created_at,updated_at").order("created_at",{ascending:false}).limit(100);if(!docs.error)await cacheRows("documents",docs.data||[]);
+    await setMeta("last_full_sync",Date.now());await loadLocalMeta();await loadStats();
+    if(old){old.classList.remove("hidden");old.textContent=`✅ 離線資料已下載完成，共 ${fmt(total)} 筆商品。下次沒有網路時也能搜尋與編輯。`}
+    await render();
+  }catch(e){if(old){old.classList.remove("hidden");old.textContent="下載離線資料失敗："+(e.message||String(e))}alert("下載離線資料失敗："+(e.message||String(e)))}
+  finally{if(btn)btn.disabled=false;await updateOfflineUI()}
+}
+
+async function offlineBoot(){
+  try{
+    await openOfflineDB();
+    if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").catch(()=>{});}
+    $("syncBtn").onclick=syncOfflineChanges;$("downloadOfflineBtn").onclick=downloadOfflineData;
+    window.addEventListener("online",async()=>{await updateOfflineUI();await syncOfflineChanges()});
+    window.addEventListener("offline",updateOfflineUI);
+    await updateOfflineUI();
+    if(!window.supabase)throw new Error("Supabase 元件載入失敗。若這是第一次使用離線版，請先在線開啟一次網站。");
+    sb=window.supabase.createClient(CONFIG.url,CONFIG.key);
+    const {data,error}=await sb.auth.getSession();
+    if(error)throw error;session=data.session||null;
+    if(session){showApp();renderSearchTools();initSmartSearch();initVoiceSearch();if(navigator.onLine){await loadMeta();await syncOfflineChanges()}else await loadLocalMeta();await render(true)}else showLogin();
+    sb.auth.onAuthStateChange(async(_event,newSession)=>{session=newSession||null;if(session){showApp();renderSearchTools();initSmartSearch();initVoiceSearch();if(navigator.onLine)await syncOfflineChanges();await render(true)}else showLogin()});
+    setInterval(updateOfflineUI,5000);
+  }catch(e){showLogin();setLoginMessage("系統初始化失敗："+(e.message||String(e)))}
+}
+
+async function render(first=false){
+  try{
+    if(!session)return;showApp();await updateOfflineUI();
+    if(first)$("app").innerHTML=`<div class="card empty">${navigator.onLine?"正在連線雲端資料庫…":"正在讀取離線資料…"}</div>`;
+    await loadMeta();await loadStats();
+    if(currentTab==="products")await loadProducts();
+    else if(currentTab==="vendors")await renderVendors();
+    else if(currentTab==="categories")renderCategories();
+    else if(currentTab==="locations")renderLocations();
+    else if(currentTab==="transactions")await renderTransactions();
+    else if(currentTab==="documents")await renderDocuments();
+  }catch(e){console.error(e);if(!navigator.onLine){$("app").innerHTML=`<div class="card empty">目前沒有可用的離線資料。<br><br>請先在線登入一次，並按「⬇️ 下載離線資料」。</div>`}else setAppMessage("系統載入失敗："+(e.message||String(e)))}
+}
+
+offlineBoot();
 </script>
 </body>
 </html>
