@@ -35,6 +35,15 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 .scan-box{border:2px dashed #d5c6b5;padding:26px;border-radius:16px;text-align:center;background:#fcfaf6}.menu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 @media(max-width:900px){.quick{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr 1fr}.tabs{grid-template-columns:repeat(4,1fr)}}@media(max-width:560px){main{padding:12px}.two{grid-template-columns:1fr}.topline .secondary{display:none}}
 @media(min-width:950px){.product{display:grid;grid-template-columns:68px 1fr auto;gap:12px;align-items:center}.product-top{display:contents}.product .actions{margin-top:0;justify-content:flex-end}}
+
+.filter-panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:12px;box-shadow:var(--shadow)}
+.filter-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.filter-grid label{margin:0;font-size:12px;color:var(--muted)}
+.filter-grid select,.filter-grid input{margin-top:4px}
+.filter-actions{display:flex;gap:8px;align-items:center;margin-top:9px}
+.filter-summary{font-size:12px;color:var(--muted);flex:1}
+@media(max-width:900px){.filter-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.filter-grid{grid-template-columns:1fr}.filter-actions{flex-wrap:wrap}.filter-summary{flex-basis:100%}}
 </style>
 </head>
 <body>
@@ -77,7 +86,7 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 <h2 id="productDialogTitle">新增商品</h2><div class="notice">商品資料會儲存在雲端。照片會放在私有的 inventory-photos。已建立商品請使用「入庫／出庫」調整庫存。</div>
 <div class="two"><div><label>商品名稱</label><input id="name" type="text" placeholder="例如：十字螺絲"></div><div><label>商品編號</label><input id="sku" type="text" placeholder="例如：SL-M6-030-001"></div></div>
 <div class="two"><div><label>規格</label><input id="spec" type="text" placeholder="例如：M6 × 30mm、白鐵"></div><div><label>條碼</label><input id="barcode" type="text" placeholder="可手動輸入"></div></div>
-<div class="two"><div><label>廠商</label><select id="vendor"></select></div><div><label>單位名稱</label><input id="unit" type="text" placeholder="個、盒、包、箱"></div></div>
+<div class="two"><div><label>廠商</label><select id="vendor"></select></div><div><label>單位名稱</label><input id="unit" type="text" placeholder="例如：個、盒、包、箱"></div></div>
 <div class="two"><div><label>母項目</label><input id="parentCategory" type="text" placeholder="例如：螺絲類"></div><div><label>子項目</label><input id="childCategory" type="text" placeholder="例如：十字螺絲"></div></div>
 <div class="two"><div><label>所在位置</label><input id="location" type="text" placeholder="例如：A01-03"></div><div><label>日期</label><input id="date" type="date"></div></div>
 <div class="two"><div><label>目前數量</label><input id="qty" type="number" min="0" value="0"></div><div><label>最低庫存</label><input id="minQty" type="number" min="0" value="0"></div></div>
@@ -170,6 +179,49 @@ async function signedPhoto(path){
   return error?"":(data?.signedUrl||"");
 }
 
+
+const productFilters={vendor:"",stock:"",parent:"",child:""};
+
+function filterPanelHTML(){
+  return `<div class="filter-panel">
+    <div class="filter-grid">
+      <label>廠商<select id="filterVendor"><option value="">全部廠商</option>${vendorCache.map(v=>`<option value="${esc(v.id)}">${esc(v.name)}</option>`).join("")}</select></label>
+      <label>庫存狀態<select id="filterStock"><option value="">全部</option><option value="out">缺貨</option><option value="low">低庫存</option><option value="normal">庫存正常</option></select></label>
+      <label>母項目<input id="filterParent" type="text" placeholder="例如：螺絲類"></label>
+      <label>子項目<input id="filterChild" type="text" placeholder="例如：十字螺絲"></label>
+    </div>
+    <div class="filter-actions">
+      <div id="filterSummary" class="filter-summary">可搭配上方搜尋使用</div>
+      <button class="secondary" onclick="applyProductFilters()">套用篩選</button>
+      <button class="secondary" onclick="clearProductFilters()">清除</button>
+    </div>
+  </div>`;
+}
+function syncFilterUI(){
+  if($("filterVendor"))$("filterVendor").value=productFilters.vendor;
+  if($("filterStock"))$("filterStock").value=productFilters.stock;
+  if($("filterParent"))$("filterParent").value=productFilters.parent;
+  if($("filterChild"))$("filterChild").value=productFilters.child;
+  const a=[];
+  if(productFilters.vendor)a.push("廠商");
+  if(productFilters.stock)a.push("庫存");
+  if(productFilters.parent)a.push("母項目");
+  if(productFilters.child)a.push("子項目");
+  if($("filterSummary"))$("filterSummary").textContent=a.length?`已套用：${a.join("＋")}`:"可搭配上方搜尋使用";
+}
+function applyProductFilters(){
+  productFilters.vendor=$("filterVendor")?.value||"";
+  productFilters.stock=$("filterStock")?.value||"";
+  productFilters.parent=$("filterParent")?.value.trim()||"";
+  productFilters.child=$("filterChild")?.value.trim()||"";
+  page=0;loadProducts();
+}
+function clearProductFilters(){
+  productFilters.vendor="";productFilters.stock="";productFilters.parent="";productFilters.child="";
+  page=0;loadProducts();
+}
+function setQuickStockFilter(type){productFilters.stock=type;page=0;loadProducts();}
+
 async function loadProducts(){
   const q=$("search").value.trim();
   let query=sb.from("products").select(
@@ -180,6 +232,12 @@ async function loadProducts(){
     const safe=q.replace(/[(),]/g," ");
     query=query.or(`sku.ilike.%${safe}%,name.ilike.%${safe}%,spec.ilike.%${safe}%,category.ilike.%${safe}%,location.ilike.%${safe}%,barcode.ilike.%${safe}%,parent_category.ilike.%${safe}%,child_category.ilike.%${safe}%,note.ilike.%${safe}%`);
   }
+
+    if(productFilters.vendor)query=query.eq("vendor_id",productFilters.vendor);
+    if(productFilters.parent)query=query.ilike("parent_category",`%${productFilters.parent}%`);
+    if(productFilters.child)query=query.ilike("child_category",`%${productFilters.child}%`);
+    if(productFilters.stock==="out")query=query.eq("stock",0);
+
   const from=page*PAGE_SIZE,to=from+PAGE_SIZE-1;
   const {data,error,count}=await query.order("name").range(from,to);
   if(error)throw new Error("讀取商品清單失敗："+error.message);
@@ -189,7 +247,8 @@ async function loadProducts(){
 }
 function renderProducts(ps){
   $("app").innerHTML=`
-    <div class="toolbar"><button class="chip" onclick="filterProducts('low')">⚠️ 低庫存</button><button class="chip" onclick="filterProducts('out')">❌ 缺貨</button><button class="chip" onclick="filterProducts('photo')">📷 有照片</button><button class="chip" onclick="clearSearch()">清除搜尋</button></div>
+    <div class="toolbar"><button class="chip" onclick="setQuickStockFilter('low')">⚠️ 低庫存</button><button class="chip" onclick="setQuickStockFilter('out')">❌ 缺貨</button><button class="chip" onclick="filterProducts('photo')">📷 有照片</button><button class="chip" onclick="clearSearch()">清除搜尋</button></div>
+    ${filterPanelHTML()}
     <div class="addbar"><div class="hint">第 ${fmt(totalCount?page*PAGE_SIZE+1:0)}～${fmt(Math.min((page+1)*PAGE_SIZE,totalCount))} 筆，共 ${fmt(totalCount)} 筆</div><button class="primary" onclick="openProduct()">＋ 新增商品</button></div>
     <div class="list">${ps.length?ps.map(p=>{const st=Number(p.stock||0)===0?["缺貨","out"]:Number(p.stock||0)<=Number(p.min_stock||0)?["低庫存","low"]:["庫存正常","ok"];return `<div class="card product">
       <div class="product-top"><div class="thumb">${p._photo?`<img src="${p._photo}">`:"📦"}</div><div class="info"><div class="name">${esc(p.name||"未命名商品")}</div>
@@ -199,9 +258,11 @@ function renderProducts(ps){
       <div class="actions"><button onclick="openMovement('${p.id}','入庫')">📥 入庫</button><button onclick="openMovement('${p.id}','出庫')">📤 出庫</button><button onclick="openProduct('${p.id}')">✏️ 編輯</button><button onclick="showProductHistory('${p.id}')">📋 紀錄</button><button class="danger" onclick="removeProduct('${p.id}')">刪除</button></div>
     </div>`}).join(""):`<div class="card empty">目前沒有商品，或沒有符合搜尋條件的商品。</div>`}</div>
     <div class="pager"><button class="secondary" onclick="prevPage()" ${page===0?"disabled":""}>上一頁</button><span class="hint">第 ${page+1} / ${Math.max(1,Math.ceil(totalCount/PAGE_SIZE))} 頁</span><button class="secondary" onclick="nextPage()" ${(page+1)*PAGE_SIZE>=totalCount?"disabled":""}>下一頁</button></div>`;
+
+  syncFilterUI();
 }
 function filterProducts(type){let ps=productCache;if(type==="low")ps=ps.filter(p=>Number(p.stock||0)<=Number(p.min_stock||0));if(type==="out")ps=ps.filter(p=>Number(p.stock||0)===0);if(type==="photo")ps=ps.filter(p=>!!p.photo_path);renderProducts(ps)}
-function clearSearch(){$("search").value="";page=0;loadProducts()}
+function clearSearch(){$("search").value="";clearProductFilters()}
 function prevPage(){if(page>0){page--;loadProducts()}}function nextPage(){if((page+1)*PAGE_SIZE<totalCount){page++;loadProducts()}}
 
 function vendorName(id){return vendorCache.find(v=>v.id===id)?.name||"未設定廠商"}
