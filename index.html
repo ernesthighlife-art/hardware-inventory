@@ -3,222 +3,409 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111827">
+<meta name="theme-color" content="#3b3028">
 <title>我的庫存</title>
 <style>
+:root{
+  --bg:#f5f1ea;--surface:#fffdf9;--surface2:#faf6f0;--text:#2b241e;--muted:#81766b;
+  --line:#e5dbcf;--primary:#3b3028;--accent:#c7782a;--accent2:#a85f1e;--accentBg:#fff1df;
+  --success:#277354;--successBg:#e9f6ef;--warn:#a56817;--warnBg:#fff5df;
+  --danger:#ad3d32;--dangerBg:#fff0ed;--blue:#496b9b;--blueBg:#eef3fa;
+  --shadow:0 8px 28px rgba(78,58,42,.08);--radius:18px
+}
 *{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f6f8;color:#171717}
-button,input{font:inherit}
-header{position:sticky;top:0;z-index:5;background:#111827;color:white;padding:18px 16px 14px}
-header h1{margin:0 0 12px;font-size:24px}
-.search{width:100%;padding:12px 14px;border:0;border-radius:12px;background:#fff;color:#111}
-main{padding:16px 16px 90px;max-width:700px;margin:auto}
-.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
-.tabs button,.primary,.secondary{border:0;border-radius:12px;padding:12px;font-weight:700}
-.tabs button{background:white;color:#555}
-.tabs button.active{background:#111827;color:white}
-.card{background:white;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 5px #00000010}
-.card h3{margin:0 0 6px}
-.meta{color:#666;font-size:14px}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.badge{background:#eef2ff;padding:5px 9px;border-radius:999px;font-size:13px}
-.primary{background:#111827;color:white;width:100%;margin-bottom:10px}
-.secondary{background:#e5e7eb;color:#111}
-.danger{background:#fee2e2;color:#991b1b}
-.empty{text-align:center;color:#777;padding:40px 10px}
-dialog{border:0;border-radius:18px;width:min(92%,520px);padding:0;box-shadow:0 15px 60px #0004}
-dialog::backdrop{background:#0007}
-.form{padding:20px}
-.form h2{margin-top:0}
-label{display:block;font-size:14px;font-weight:700;margin:12px 0 6px}
-input[type=text],input[type=number],select,textarea{width:100%;padding:11px;border:1px solid #ddd;border-radius:10px;background:#fff}
-textarea{min-height:80px;resize:vertical}
-.actions{display:flex;gap:8px;margin-top:18px}
-.actions button{flex:1}
-.photo-preview{width:100%;max-height:180px;object-fit:contain;border-radius:12px;margin-top:8px;background:#f3f4f6}
-.stat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.stat .card{margin:0}
-.stat strong{font-size:28px;display:block}
-.fab{position:fixed;right:18px;bottom:20px;width:58px;height:58px;border-radius:50%;border:0;background:#111827;color:#fff;font-size:30px;box-shadow:0 5px 20px #0003}
-.item-actions{display:flex;gap:7px;margin-top:12px}
-.item-actions button{border:0;border-radius:9px;padding:8px 10px;background:#f1f1f1}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+header{background:linear-gradient(135deg,#352a23,#5a4638);color:#fff;padding:17px 18px 20px;position:sticky;top:0;z-index:10}
+.header-inner{max-width:1200px;margin:auto}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.title{font-size:23px;font-weight:850;letter-spacing:.4px}.subtitle{font-size:12px;color:#eaded3;margin-top:3px}
+.search{width:100%;margin-top:14px;border:0;border-radius:15px;padding:13px 15px;background:#fff;color:#111;outline:none;box-shadow:0 5px 18px rgba(66,48,35,.12)}
+main{max-width:1200px;margin:auto;padding:16px 16px 110px}
+.quick{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:13px}
+.quick button{border:1px solid #eadfD3;background:var(--surface);border-radius:13px;padding:10px 7px;color:#574b42;font-weight:750}
+.quick button:hover{border-color:#d5b18c}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid rgba(231,221,209,.75)}
+.stat{padding:15px}.stat .label{color:var(--muted);font-size:12px}.stat strong{display:block;font-size:27px;margin:3px 0}.stat small{color:var(--muted)}
+.tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:13px}
+.tabs button{border:0;border-radius:12px;background:#fff;padding:10px 6px;font-weight:800;color:#6e6258}
+.tabs button.active{background:var(--accent);color:#fff}
+.toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 11px;color:#62564d;font-size:13px}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.addbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.hint{font-size:13px;color:var(--muted)}
+.primary{border:0;background:var(--accent);color:#fff;border-radius:12px;padding:11px 14px;font-weight:800}
+.secondary{border:1px solid var(--line);background:#fff;color:#4d433c;border-radius:11px;padding:9px 12px;font-weight:750}
+.danger{background:var(--dangerBg)!important;color:var(--danger)!important;border-color:#ffd4cf!important}
+.notice{background:var(--accentBg);color:#7a4a19;border-radius:13px;padding:11px 13px;font-size:13px;line-height:1.55;margin-bottom:12px}
+.list{display:grid;gap:10px}
+.product{padding:14px}.product-top{display:flex;gap:12px;align-items:flex-start}.thumb{width:68px;height:68px;flex:none;border-radius:13px;background:#f2ece4;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#a89a8c;font-size:25px}.thumb img{width:100%;height:100%;object-fit:cover}
+.info{min-width:0;flex:1}.name{font-weight:850;font-size:16px;line-height:1.35}.sku{font-size:12px;color:var(--muted);margin-top:2px}.meta{font-size:13px;color:#6b5f55;line-height:1.62;margin-top:6px}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.badge{font-size:12px;padding:4px 8px;border-radius:999px;background:#f3eee8;color:#5f554c}.badge.ok{background:var(--successBg);color:var(--success)}.badge.low{background:var(--warnBg);color:var(--warn)}.badge.out{background:var(--dangerBg);color:var(--danger)}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.actions button{border:1px solid var(--line);background:#fbf8f3;border-radius:10px;padding:8px 10px;font-size:13px}
+.section{padding:16px;margin-bottom:12px}.section h3{margin:0 0 10px}
+.rows{display:grid;gap:0}.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}.row .muted{color:var(--muted)}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:13px}.table{width:100%;border-collapse:collapse;min-width:720px}.table th,.table td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:13px}.table th{background:#fbf7f1;color:#695d53;position:sticky;top:0}.table td.num{text-align:right}
+.empty{text-align:center;color:var(--muted);padding:45px 12px}
+.dialog{border:0;border-radius:20px;width:min(95%,720px);padding:0;box-shadow:0 20px 70px rgba(0,0,0,.25)}.dialog::backdrop{background:rgba(15,23,42,.66)}
+.form{padding:20px}.form h2{margin:0 0 8px}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:13px;font-weight:850;margin:13px 0 6px}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;padding:11px 12px;border:1px solid #ddd2c6;border-radius:11px;background:#fff;outline:none}
+textarea{min-height:78px;resize:vertical}.form-actions{display:flex;gap:8px;margin-top:18px}.form-actions>*{flex:1}.preview{width:100%;max-height:210px;object-fit:contain;border-radius:13px;margin-top:8px;background:#f1ece5}
+.fab{position:fixed;right:18px;bottom:18px;width:58px;height:58px;border:0;border-radius:50%;background:var(--accent);color:#fff;font-size:30px;box-shadow:0 8px 30px rgba(15,23,42,.28);z-index:12}
+.menu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.menu-card{padding:16px}.menu-card button{width:100%;margin-top:10px}
+.count-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;align-items:center}
+.scan-box{border:2px dashed #d5c6b5;padding:26px;border-radius:16px;text-align:center;background:#fcfaf6}
+.big-number{font-size:34px;font-weight:900}
+.small{font-size:12px;color:var(--muted)}
+@media(max-width:900px){.quick{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr 1fr}.tabs{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:560px){main{padding:13px 12px 95px}.grid{gap:8px}.stat{padding:12px}.stat strong{font-size:24px}.tabs{grid-template-columns:repeat(4,1fr)}.two{grid-template-columns:1fr}.topline .secondary{display:none}}
+@media(min-width:950px){.product{display:grid;grid-template-columns:68px 1fr auto;gap:12px;align-items:center}.product-top{display:contents}.product .actions{margin-top:0;justify-content:flex-end}}
 </style>
 </head>
 <body>
 <header>
-  <h1>📦 我的庫存</h1>
-  <input id="search" class="search" placeholder="搜尋商品、層架、備註…">
+  <div class="header-inner">
+    <div class="topline">
+      <div><div class="title">📦 我的庫存</div><div class="subtitle">商品・廠商・分類・位置・盤點・進出貨</div></div>
+      <button class="secondary" onclick="openProduct()" style="background:#ffffff14;color:#fff;border-color:#ffffff33">＋ 商品</button>
+    </div>
+    <input id="search" class="search" placeholder="🔎 搜尋商品編號、名稱、規格、廠商、分類、位置、條碼…">
+  </div>
 </header>
 
 <main>
+  <div class="quick">
+    <button onclick="setTab('products')">📦 商品</button>
+    <button onclick="setTab('vendors')">🏭 廠商</button>
+    <button onclick="setTab('categories')">📂 分類</button>
+    <button onclick="setTab('locations')">📍 位置</button>
+    <button onclick="setTab('counting')">🧮 盤點</button>
+    <button onclick="setTab('documents')">📷 貨單</button>
+  </div>
+
+  <div class="grid">
+    <div class="card stat"><span class="label">商品種類</span><strong id="statProducts">0</strong><small>目前建立的商品</small></div>
+    <div class="card stat"><span class="label">庫存總數</span><strong id="statQty">0</strong><small>所有商品合計</small></div>
+    <div class="card stat"><span class="label">廠商</span><strong id="statVendors">0</strong><small>合作廠商</small></div>
+    <div class="card stat"><span class="label">低庫存</span><strong id="statLow">0</strong><small>需要補貨</small></div>
+  </div>
+
   <div class="tabs">
     <button class="active" data-tab="products">商品</button>
-    <button data-tab="shelves">層架</button>
-    <button data-tab="stats">統計</button>
+    <button data-tab="vendors">廠商</button>
+    <button data-tab="categories">分類</button>
+    <button data-tab="locations">位置</button>
+    <button data-tab="transactions">異動</button>
+    <button data-tab="counting">盤點</button>
+    <button data-tab="documents">貨單／AI</button>
   </div>
+
   <div id="app"></div>
 </main>
 
 <button class="fab" id="addBtn">＋</button>
 
-<dialog id="dialog">
+<dialog id="dialog" class="dialog">
   <div class="form">
     <h2 id="dialogTitle">新增商品</h2>
-    <label>商品名稱</label>
-    <input id="name" type="text" placeholder="例如：十字螺絲">
-    <label>所在層架</label>
-    <select id="shelf"></select>
-    <label>數量</label>
-    <input id="qty" type="number" min="0" value="1">
-    <label>備註</label>
-    <textarea id="note" placeholder="例如：黑色、3cm"></textarea>
+    <div class="notice">大量商品管理建議：每項商品盡量有「商品編號、規格、廠商、位置」。未來 AI 讀貨單時會用這些欄位比對。</div>
+
+    <div class="two">
+      <div><label>商品名稱</label><input id="name" type="text" placeholder="例如：十字螺絲"></div>
+      <div><label>商品編號</label><input id="sku" type="text" placeholder="例如：SL-M6-030-001"></div>
+    </div>
+
+    <div class="two">
+      <div><label>規格</label><input id="spec" type="text" placeholder="例如：M6 × 30mm、白鐵"></div>
+      <div><label>條碼</label><input id="barcode" type="text" placeholder="可掃描或手動輸入"></div>
+    </div>
+
+    <div class="two">
+      <div><label>廠商</label><select id="vendor"></select></div>
+      <div><label>單位</label><input id="unit" type="text" placeholder="個、盒、包、箱"></div>
+    </div>
+
+    <div class="two">
+      <div><label>母項目</label><input id="parentCategory" type="text" placeholder="例如：螺絲類"></div>
+      <div><label>子項目</label><input id="childCategory" type="text" placeholder="例如：十字螺絲"></div>
+    </div>
+
+    <div class="two">
+      <div><label>所在位置</label><input id="location" type="text" placeholder="例如：A01-03"></div>
+      <div><label>日期</label><input id="date" type="date"></div>
+    </div>
+
+    <div class="two">
+      <div><label>目前數量</label><input id="qty" type="number" min="0" value="0"></div>
+      <div><label>最低庫存</label><input id="minQty" type="number" min="0" value="0"></div>
+    </div>
+
+    <div class="two">
+      <div><label>進貨成本</label><input id="cost" type="number" min="0" step="0.01" placeholder="0"></div>
+      <div><label>售價</label><input id="price" type="number" min="0" step="0.01" placeholder="0"></div>
+    </div>
+
+    <label>備註／搜尋關鍵字</label>
+    <textarea id="note" placeholder="例如：黑色、常用、客人常叫黑螺絲"></textarea>
+
     <label>商品照片</label>
     <input id="photo" type="file" accept="image/*" capture="environment">
-    <img id="preview" class="photo-preview" style="display:none">
-    <div class="actions">
+    <img id="preview" class="preview" style="display:none">
+
+    <div class="form-actions">
       <button class="secondary" id="cancel">取消</button>
-      <button class="primary" id="save">儲存</button>
+      <button class="primary" id="save">儲存商品</button>
     </div>
   </div>
 </dialog>
 
-<dialog id="shelfDialog">
+<dialog id="vendorDialog" class="dialog">
   <div class="form">
-    <h2>新增層架</h2>
-    <label>層架名稱</label>
-    <input id="shelfName" type="text" placeholder="例如：A01 第一層">
-    <div class="actions">
-      <button class="secondary" id="shelfCancel">取消</button>
-      <button class="primary" id="shelfSave">新增</button>
+    <h2>新增廠商</h2>
+    <label>廠商名稱</label><input id="vendorName" type="text" placeholder="例如：XX五金">
+    <label>聯絡電話</label><input id="vendorPhone" type="text" placeholder="選填">
+    <label>備註</label><textarea id="vendorNote" placeholder="選填"></textarea>
+    <div class="form-actions"><button class="secondary" id="vendorCancel">取消</button><button class="primary" id="vendorSave">新增廠商</button></div>
+  </div>
+</dialog>
+
+<dialog id="movementDialog" class="dialog">
+  <div class="form">
+    <h2 id="movementTitle">庫存異動</h2>
+    <div id="movementProduct" class="notice"></div>
+    <label>數量</label><input id="movementQty" type="number" min="1" value="1">
+    <label>原因</label><input id="movementReason" type="text" placeholder="例如：進貨、銷售、損耗、盤點修正">
+    <div class="form-actions"><button class="secondary" onclick="document.getElementById('movementDialog').close()">取消</button><button class="primary" id="movementSave">確認</button></div>
+  </div>
+</dialog>
+
+<dialog id="aiDialog" class="dialog">
+  <div class="form">
+    <h2>📷 貨單／AI 整理</h2>
+    <div class="scan-box">
+      <div style="font-size:38px">📷</div>
+      <h3>拍攝或選擇貨單</h3>
+      <div class="small">這一版先建立完整操作流程與資料結構；真正 AI 辨識需接後端 API，避免把 AI 金鑰放在公開網頁。</div>
+      <input id="documentPhoto" type="file" accept="image/*" capture="environment" style="margin-top:14px">
     </div>
+    <div id="aiPreview" style="display:none;margin-top:12px"></div>
+    <div class="form-actions"><button class="secondary" onclick="document.getElementById('aiDialog').close()">關閉</button><button class="primary" onclick="simulateAIReview()">建立辨識待確認單</button></div>
   </div>
 </dialog>
 
 <script>
-const KEY="my_inventory_v1";
-let data=JSON.parse(localStorage.getItem(KEY)||'null')||{
-  shelves:["A01 第一層","A01 第二層","A01 第三層"],
-  products:[]
+const KEY="my_inventory_full_v1";
+const today=new Date().toISOString().slice(0,10);
+let data=JSON.parse(localStorage.getItem(KEY)||"null")||{
+  vendors:[{id:crypto.randomUUID(),name:"一般廠商",phone:"",note:""}],
+  products:[],
+  locations:["A01-01","A01-02","A01-03"],
+  transactions:[],
+  documents:[],
+  countSession:null
 };
-let editingId=null, currentTab="products", pendingPhoto=null;
+let editingId=null,currentTab="products",pendingPhoto=null,movementId=null,movementType="入庫",currentCountingIndex=0;
 
 function saveData(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-function shelfOptions(selected=""){
-  return data.shelves.map(s=>`<option ${s===selected?"selected":""}>${esc(s)}</option>`).join("")
+function vendorOptions(selected=""){return data.vendors.map(v=>`<option value="${esc(v.id)}" ${v.id===selected?"selected":""}>${esc(v.name)}</option>`).join("")}
+function fmt(n){return Number(n||0).toLocaleString("zh-TW")}
+function status(p){const q=Number(p.qty||0),min=Number(p.minQty||0);if(q===0)return["缺貨","out"];if(q<=min)return["低庫存","low"];return["庫存正常","ok"]}
+
+function updateStats(){
+  const total=data.products.reduce((a,p)=>a+Number(p.qty||0),0);
+  const low=data.products.filter(p=>Number(p.qty||0)<=Number(p.minQty||0)).length;
+  document.getElementById("statProducts").textContent=fmt(data.products.length);
+  document.getElementById("statQty").textContent=fmt(total);
+  document.getElementById("statVendors").textContent=fmt(data.vendors.length);
+  document.getElementById("statLow").textContent=fmt(low);
 }
+function setTab(tab){currentTab=tab;document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));render()}
 function render(){
+  updateStats();
   const q=document.getElementById("search").value.trim().toLowerCase();
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===currentTab));
-  if(currentTab==="products") renderProducts(q);
-  if(currentTab==="shelves") renderShelves(q);
-  if(currentTab==="stats") renderStats();
+  if(currentTab==="products")renderProducts(q);
+  else if(currentTab==="vendors")renderVendors(q);
+  else if(currentTab==="categories")renderCategories(q);
+  else if(currentTab==="locations")renderLocations(q);
+  else if(currentTab==="transactions")renderTransactions(q);
+  else if(currentTab==="counting")renderCounting(q);
+  else if(currentTab==="documents")renderDocuments(q);
 }
+
+function productMatches(p,q){
+  return (p.name+" "+p.sku+" "+p.spec+" "+p.barcode+" "+vendorName(p.vendor)+" "+p.parentCategory+" "+p.childCategory+" "+p.location+" "+p.date+" "+p.note).toLowerCase().includes(q);
+}
+function vendorName(id){return data.vendors.find(v=>v.id===id)?.name||id||"未設定"}
 function renderProducts(q=""){
-  let ps=data.products.filter(p=>(p.name+" "+p.shelf+" "+p.note).toLowerCase().includes(q));
+  let ps=data.products.filter(p=>productMatches(p,q));
   document.getElementById("app").innerHTML=`
-    <button class="primary" onclick="openProduct()">＋ 新增商品</button>
-    ${ps.length?ps.map(p=>`
-      <div class="card">
-        <div class="row"><h3>${esc(p.name)}</h3><span class="badge">數量 ${p.qty}</span></div>
-        <div class="meta">📍 ${esc(p.shelf)}</div>
-        ${p.note?`<div class="meta">📝 ${esc(p.note)}</div>`:""}
-        ${p.photo?`<img class="photo-preview" src="${p.photo}">`:""}
-        <div class="item-actions">
+    <div class="toolbar">
+      <button class="chip active" onclick="filterStatus('all')">全部</button>
+      <button class="chip" onclick="filterStatus('low')">⚠️ 低庫存</button>
+      <button class="chip" onclick="filterStatus('out')">❌ 缺貨</button>
+      <button class="chip" onclick="filterStatus('photo')">📷 有照片</button>
+      <button class="chip" onclick="filterStatus('today')">📅 今天異動</button>
+    </div>
+    <div class="addbar"><div class="hint">顯示 ${fmt(ps.length)} 筆</div><button class="primary" onclick="openProduct()">＋ 新增商品</button></div>
+    <div class="list">${ps.length?ps.map(p=>{
+      const [st,cl]=status(p);
+      return `<div class="card product">
+        <div class="product-top"><div class="thumb">${p.photo?`<img src="${p.photo}">`:"📦"}</div>
+          <div class="info"><div class="name">${esc(p.name||"未命名商品")}</div>
+            ${p.sku?`<div class="sku">編號：${esc(p.sku)}</div>`:""}
+            <div class="meta">${p.spec?`規格：${esc(p.spec)}<br>`:""}🏭 ${esc(vendorName(p.vendor))}${p.location?`　📍 ${esc(p.location)}`:""}<br>
+              ${p.parentCategory?`📂 ${esc(p.parentCategory)}`:""}${p.childCategory?`　└ ${esc(p.childCategory)}`:""}${p.date?`<br>📅 ${esc(p.date)}`:""}
+            </div>
+            <div class="badges"><span class="badge ${cl}">${st}</span><span class="badge">庫存 ${fmt(p.qty)} ${esc(p.unit||"個")}</span>${p.minQty?`<span class="badge">最低 ${fmt(p.minQty)}</span>`:""}</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button onclick="openMovement('${p.id}','入庫')">📥 入庫</button>
+          <button onclick="openMovement('${p.id}','出庫')">📤 出庫</button>
           <button onclick="openProduct('${p.id}')">✏️ 編輯</button>
-          <button onclick="changeQty('${p.id}',1)">＋1</button>
-          <button onclick="changeQty('${p.id}',-1)">−1</button>
+          <button onclick="startCountOne('${p.id}')">🧮 盤點</button>
+          <button onclick="showProductHistory('${p.id}')">📋 紀錄</button>
           <button class="danger" onclick="removeProduct('${p.id}')">刪除</button>
         </div>
-      </div>`).join(""):`<div class="empty">目前沒有商品<br>按右下角 ＋ 開始建立庫存</div>`}
-  `;
+      </div>`}).join(""):`<div class="card empty">目前沒有符合條件的商品<br><br>可以新增商品，或直接使用上方搜尋。</div>`}
+    </div>`;
 }
-function renderShelves(q=""){
-  let ss=data.shelves.filter(s=>s.toLowerCase().includes(q));
-  document.getElementById("app").innerHTML=`
-    <button class="primary" onclick="openShelf()">＋ 新增層架</button>
-    ${ss.map(s=>{
-      const count=data.products.filter(p=>p.shelf===s).length;
-      return `<div class="card"><div class="row"><div><h3>🗄️ ${esc(s)}</h3><div class="meta">${count} 項商品</div></div>
-      <button class="secondary" onclick="filterShelf('${esc(s)}')">查看</button></div></div>`
-    }).join("")}
-  `;
+function filterStatus(type){
+  document.getElementById("search").value="";
+  const now=today;
+  let ps=data.products;
+  if(type==="low")ps=ps.filter(p=>Number(p.qty||0)<=Number(p.minQty||0));
+  if(type==="out")ps=ps.filter(p=>Number(p.qty||0)===0);
+  if(type==="photo")ps=ps.filter(p=>p.photo);
+  if(type==="today"){
+    const ids=new Set(data.transactions.filter(t=>t.date===now).map(t=>t.productId));ps=ps.filter(p=>ids.has(p.id));
+  }
+  renderProductsFromArray(ps);
 }
-function renderStats(){
-  const total=data.products.reduce((a,p)=>a+Number(p.qty||0),0);
-  document.getElementById("app").innerHTML=`
-    <div class="stat">
-      <div class="card"><span class="meta">商品種類</span><strong>${data.products.length}</strong></div>
-      <div class="card"><span class="meta">庫存總數</span><strong>${total}</strong></div>
-    </div>
-    <div class="card"><h3>各層架</h3>
-      ${data.shelves.map(s=>{
-        const ps=data.products.filter(p=>p.shelf===s);
-        const n=ps.reduce((a,p)=>a+Number(p.qty||0),0);
-        return `<div class="row" style="padding:9px 0;border-bottom:1px solid #eee"><span>${esc(s)}</span><span>${ps.length} 種 / ${n} 件</span></div>`
-      }).join("")}
-    </div>
-  `;
+function renderProductsFromArray(ps){
+  const q=document.getElementById("search").value;
+  document.getElementById("search").value="";
+  // 預覽篩選結果
+  document.getElementById("app").innerHTML=`<div class="addbar"><div class="hint">篩選結果 ${fmt(ps.length)} 筆</div><button class="secondary" onclick="render()">返回全部</button></div>
+  <div class="list">${ps.map(p=>{const[st,cl]=status(p);return `<div class="card product"><div class="product-top"><div class="thumb">${p.photo?`<img src="${p.photo}">`:"📦"}</div><div class="info"><div class="name">${esc(p.name)}</div><div class="sku">${esc(p.sku||"未設定編號")}</div><div class="meta">🏭 ${esc(vendorName(p.vendor))}　📍 ${esc(p.location||"未設定")}<br>📂 ${esc(p.parentCategory||"未分類")}　└ ${esc(p.childCategory||"未分類")}</div><div class="badges"><span class="badge ${cl}">${st}</span><span class="badge">庫存 ${fmt(p.qty)} ${esc(p.unit||"個")}</span></div></div></div><div class="actions"><button onclick="openMovement('${p.id}','入庫')">📥 入庫</button><button onclick="openMovement('${p.id}','出庫')">📤 出庫</button><button onclick="openProduct('${p.id}')">✏️ 編輯</button></div></div>`}).join("")||`<div class="card empty">沒有符合條件的商品</div>`}`;
 }
-function openProduct(id=null){
-  editingId=id;
-  pendingPhoto=null;
-  const p=id?data.products.find(x=>x.id===id):null;
-  document.getElementById("dialogTitle").textContent=p?"編輯商品":"新增商品";
-  document.getElementById("name").value=p?.name||"";
-  document.getElementById("shelf").innerHTML=shelfOptions(p?.shelf||data.shelves[0]||"");
-  document.getElementById("qty").value=p?.qty??1;
-  document.getElementById("note").value=p?.note||"";
-  const preview=document.getElementById("preview");
-  preview.style.display=p?.photo?"block":"none"; preview.src=p?.photo||"";
-  document.getElementById("photo").value="";
-  document.getElementById("dialog").showModal();
-}
-function openShelf(){document.getElementById("shelfName").value="";document.getElementById("shelfDialog").showModal()}
-function changeQty(id,n){
-  const p=data.products.find(x=>x.id===id); if(!p)return;
-  p.qty=Math.max(0,Number(p.qty)+n); saveData();
-}
-function removeProduct(id){
-  if(confirm("確定刪除這個商品？")){data.products=data.products.filter(p=>p.id!==id);saveData()}
-}
-function filterShelf(s){
-  document.getElementById("search").value=s;currentTab="products";render();
-}
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;render()});
-document.getElementById("search").oninput=render;
-document.getElementById("addBtn").onclick=()=>currentTab==="shelves"?openShelf():openProduct();
-document.getElementById("cancel").onclick=()=>document.getElementById("dialog").close();
-document.getElementById("shelfCancel").onclick=()=>document.getElementById("shelfDialog").close();
 
-document.getElementById("photo").onchange=e=>{
-  const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=()=>{
-    pendingPhoto=r.result;
-    const p=document.getElementById("preview");p.src=pendingPhoto;p.style.display="block";
-  };r.readAsDataURL(f);
-};
+function renderVendors(q=""){
+  const vs=data.vendors.filter(v=>(v.name+" "+v.phone+" "+v.note).toLowerCase().includes(q));
+  document.getElementById("app").innerHTML=`<div class="addbar"><div class="hint">${fmt(vs.length)} 家廠商</div><button class="primary" onclick="openVendor()">＋ 新增廠商</button></div>
+  <div class="list">${vs.map(v=>{const ps=data.products.filter(p=>p.vendor===v.id),qty=ps.reduce((a,p)=>a+Number(p.qty||0),0);return `<div class="card section"><div class="row"><div><h3>🏭 ${esc(v.name)}</h3><div class="meta">${ps.length} 種商品・庫存 ${fmt(qty)} 件</div>${v.phone?`<div class="meta">☎ ${esc(v.phone)}</div>`:""}</div><button class="secondary" onclick="filterVendor('${v.id}')">查看商品</button></div></div>`}).join("")||`<div class="card empty">尚未建立廠商</div>`}</div>`;
+}
+function filterVendor(id){document.getElementById("search").value="";currentTab="products";renderProducts("");const ps=data.products.filter(p=>p.vendor===id);renderProductsFromArray(ps)}
+
+function renderCategories(q=""){
+  const parents={};data.products.forEach(p=>{const a=p.parentCategory||"未分類";const b=p.childCategory||"未分類";parents[a]??={qty:0,children:{}};parents[a].qty+=Number(p.qty||0);parents[a].children[b]=(parents[a].children[b]||0)+Number(p.qty||0)});
+  let keys=Object.keys(parents).filter(k=>k.toLowerCase().includes(q)||Object.keys(parents[k].children).some(c=>c.toLowerCase().includes(q)));
+  document.getElementById("app").innerHTML=`<div class="notice">建議分類採「母項目 → 子項目」。例如「螺絲類 → 十字螺絲」，未來可以再增加第三層分類。</div>
+  <div class="list">${keys.map(k=>`<div class="card section"><div class="row"><strong>📂 ${esc(k)}</strong><strong>${fmt(parents[k].qty)} 件</strong></div><div class="rows">${Object.entries(parents[k].children).map(([c,n])=>`<div class="row"><span>└ ${esc(c)}</span><span>${fmt(n)} 件</span></div>`).join("")}</div></div>`).join("")||`<div class="card empty">尚未建立分類</div>`}</div>`;
+}
+function renderLocations(q=""){
+  const list=data.locations.filter(l=>l.toLowerCase().includes(q));
+  document.getElementById("app").innerHTML=`<div class="addbar"><div class="hint">${fmt(list.length)} 個位置</div><button class="primary" onclick="addLocation()">＋ 新增位置</button></div>
+  <div class="list">${list.map(l=>{const ps=data.products.filter(p=>p.location===l),n=ps.reduce((a,p)=>a+Number(p.qty||0),0);return `<div class="card section"><div class="row"><span>📍 ${esc(l)}</span><span>${ps.length} 種 / ${fmt(n)} 件</span></div><button class="secondary" style="margin-top:8px" onclick="showLocation('${esc(l)}')">查看這個位置</button></div>`}).join("")||`<div class="card empty">尚未建立位置</div>`}</div>`;
+}
+function addLocation(){const l=prompt("請輸入位置，例如 A01-04");if(!l)return;if(!data.locations.includes(l.trim()))data.locations.push(l.trim());saveData()}
+function showLocation(l){const ps=data.products.filter(p=>p.location===l);renderProductsFromArray(ps)}
+
+function renderTransactions(q=""){
+  let ts=data.transactions.slice().sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||"")).filter(t=>(vendorName(data.products.find(p=>p.id===t.productId)?.vendor)+" "+productName(t.productId)+" "+t.type+" "+t.reason+" "+t.date).toLowerCase().includes(q));
+  document.getElementById("app").innerHTML=`<div class="card section"><h3>📋 庫存異動紀錄</h3>
+    <div class="table-wrap"><table class="table"><thead><tr><th>日期</th><th>商品</th><th>類型</th><th>數量</th><th>原因</th><th>庫存後</th></tr></thead><tbody>
+    ${ts.slice(0,300).map(t=>`<tr><td>${esc(t.date)}</td><td>${esc(productName(t.productId))}</td><td>${esc(t.type)}</td><td class="num">${t.delta>0?"+":""}${fmt(t.delta)}</td><td>${esc(t.reason||"")}</td><td class="num">${fmt(t.after)}</td></tr>`).join("")||`<tr><td colspan="6" style="text-align:center;padding:30px">尚無異動紀錄</td></tr>`}
+    </tbody></table></div></div>`;
+}
+function productName(id){return data.products.find(p=>p.id===id)?.name||"已刪除商品"}
+
+function renderCounting(){
+  const session=data.countSession;
+  if(!session){
+    document.getElementById("app").innerHTML=`<div class="menu-grid"><div class="card menu-card"><h3>🧮 開始盤點</h3><div class="meta">可以按位置盤點，逐項輸入實際數量，最後一次套用差異。</div><button class="primary" onclick="startCounting()">開始新的盤點</button></div>
+    <div class="card menu-card"><h3>📍 依位置盤點</h3><div class="meta">適合一天只盤一個貨架或一個區域。</div><button class="secondary" onclick="startLocationCount()">選擇位置開始</button></div></div>`;
+    return;
+  }
+  const ps=data.products.filter(p=>!session.location||p.location===session.location);
+  const p=ps[session.index];
+  if(!p){document.getElementById("app").innerHTML=`<div class="card section"><h3>✅ 盤點完成</h3><div class="big-number">${ps.length}</div><div class="meta">本次盤點項目</div><button class="primary" onclick="finishCounting()">套用盤點結果</button><button class="secondary" style="margin-top:8px" onclick="cancelCounting()">取消本次盤點</button></div>`;return}
+  document.getElementById("app").innerHTML=`<div class="card section"><div class="small">進度 ${session.index+1} / ${ps.length}</div><h2>${esc(p.name)}</h2><div class="meta">編號：${esc(p.sku||"未設定")}<br>規格：${esc(p.spec||"")}<br>位置：📍 ${esc(p.location||"未設定")}<br>系統數量：<strong>${fmt(p.qty)}</strong></div>
+  <label style="margin-top:15px">實際數量</label><input id="countActual" type="number" min="0" value="${p.countActual??p.qty}">
+  <div class="form-actions"><button class="secondary" onclick="countSkip()">跳過</button><button class="primary" onclick="countNext('${p.id}',${ps.length})">下一項</button></div></div>`;
+}
+function startCounting(){data.countSession={location:"",index:0,results:{}};saveData()}
+function startLocationCount(){const l=prompt("輸入要盤點的位置，例如 A01-03");if(l===null)return;data.countSession={location:l.trim(),index:0,results:{}};saveData()}
+function countNext(id,total){const v=Number(document.getElementById("countActual").value);if(!Number.isFinite(v)||v<0)return alert("請輸入正確數量");data.countSession.results[id]=v;data.countSession.index++;saveData()}
+function countSkip(){data.countSession.index++;saveData()}
+function finishCounting(){const s=data.countSession;Object.entries(s.results).forEach(([id,actual])=>{const p=data.products.find(x=>x.id===id);if(!p)return;const delta=Number(actual)-Number(p.qty||0);if(delta!==0){const before=Number(p.qty||0);p.qty=Number(actual);data.transactions.push({id:crypto.randomUUID(),productId:id,type:"盤點",delta,reason:"盤點修正",date:today,after:p.qty,createdAt:new Date().toISOString()})}});data.countSession=null;saveData();alert("盤點差異已套用")}
+function cancelCounting(){if(confirm("確定取消這次盤點？")){data.countSession=null;saveData()}}
+
+function renderDocuments(q=""){
+  document.getElementById("app").innerHTML=`<div class="notice"><strong>AI 貨單流程</strong><br>① 拍貨單 → ② AI 讀取品名／規格／數量／單價 → ③ 對照現有商品 → ④ 顯示可能匹配 → ⑤ 確認後產生入庫異動。<br>目前這個前端版已把流程與資料表結構預留好，真正 AI 辨識要由安全的後端函式呼叫 AI。</div>
+  <div class="menu-grid">
+    <div class="card menu-card"><h3>📷 拍貨單</h3><div class="meta">從手機相機拍攝採購單、送貨單。</div><button class="primary" onclick="document.getElementById('aiDialog').showModal()">拍照／選擇貨單</button></div>
+    <div class="card menu-card"><h3>✅ 待確認</h3><div class="meta">${fmt(data.documents.filter(d=>d.status==="待確認").length)} 張貨單等待人工確認。</div><button class="secondary" onclick="showPendingDocs()">查看待確認</button></div>
+  </div>
+  <div class="card section" style="margin-top:12px"><h3>近期貨單</h3><div class="rows">
+    ${data.documents.slice(-20).reverse().map(d=>`<div class="row"><span>📄 ${esc(d.name||"貨單")}</span><span>${esc(d.date)}・${esc(d.status)}</span></div>`).join("")||`<div class="empty">尚無貨單</div>`}
+  </div></div>`;
+}
+function showPendingDocs(){const ds=data.documents.filter(d=>d.status==="待確認");document.getElementById("app").innerHTML=`<div class="addbar"><div class="hint">待確認 ${ds.length} 張</div><button class="secondary" onclick="render()">返回</button></div>${ds.map(d=>`<div class="card section"><h3>📄 ${esc(d.name)}</h3><div class="meta">日期：${esc(d.date)}<br>辨識狀態：${esc(d.status)}</div><button class="primary" style="margin-top:10px" onclick="confirmDoc('${d.id}')">確認入庫（示範）</button></div>`).join("")||`<div class="card empty">沒有待確認貨單</div>`}
+`}
+function confirmDoc(id){const d=data.documents.find(x=>x.id===id);if(!d)return;d.status="已確認";saveData();alert("已標記為確認。正式 AI 版會在這裡把每一項商品建立入庫異動。")}
+
+function openProduct(id=null){
+  editingId=id;pendingPhoto=null;const p=id?data.products.find(x=>x.id===id):null;
+  document.getElementById("dialogTitle").textContent=p?"編輯商品":"新增商品";
+  document.getElementById("name").value=p?.name||"";document.getElementById("sku").value=p?.sku||"";document.getElementById("spec").value=p?.spec||"";
+  document.getElementById("barcode").value=p?.barcode||"";document.getElementById("vendor").innerHTML=vendorOptions(p?.vendor||data.vendors[0]?.id||"");
+  document.getElementById("unit").value=p?.unit||"個";document.getElementById("parentCategory").value=p?.parentCategory||"";document.getElementById("childCategory").value=p?.childCategory||"";
+  document.getElementById("location").value=p?.location||"";document.getElementById("date").value=p?.date||today;document.getElementById("qty").value=p?.qty??0;
+  document.getElementById("minQty").value=p?.minQty??0;document.getElementById("cost").value=p?.cost??"";document.getElementById("price").value=p?.price??"";document.getElementById("note").value=p?.note||"";
+  const preview=document.getElementById("preview");preview.style.display=p?.photo?"block":"none";preview.src=p?.photo||"";document.getElementById("photo").value="";document.getElementById("dialog").showModal();
+}
+function openVendor(){document.getElementById("vendorName").value="";document.getElementById("vendorPhone").value="";document.getElementById("vendorNote").value="";document.getElementById("vendorDialog").showModal()}
+function openMovement(id,type){movementId=id;movementType=type;const p=data.products.find(x=>x.id===id);document.getElementById("movementTitle").textContent=type==="入庫"?"📥 商品入庫":"📤 商品出庫";document.getElementById("movementProduct").innerHTML=`${esc(p.name)}<br>目前庫存：<strong>${fmt(p.qty)} ${esc(p.unit||"個")}</strong>`;document.getElementById("movementQty").value=1;document.getElementById("movementReason").value=type==="入庫"?"進貨":"銷售";document.getElementById("movementDialog").showModal()}
+function showProductHistory(id){const ts=data.transactions.filter(t=>t.productId===id).slice(-30).reverse();alert(ts.length?ts.map(t=>`${t.date} ${t.type} ${t.delta>0?"+":""}${t.delta} → ${t.after}｜${t.reason||""}`).join("\\n"):"目前沒有異動紀錄")}
+function removeProduct(id){if(confirm("確定刪除這個商品？")){data.products=data.products.filter(p=>p.id!==id);saveData()}}
+
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+document.getElementById("search").oninput=render;
+document.getElementById("addBtn").onclick=()=>currentTab==="vendors"?openVendor():openProduct();
+document.getElementById("cancel").onclick=()=>document.getElementById("dialog").close();
+document.getElementById("vendorCancel").onclick=()=>document.getElementById("vendorDialog").close();
+document.getElementById("photo").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{pendingPhoto=r.result;const p=document.getElementById("preview");p.src=pendingPhoto;p.style.display="block"};r.readAsDataURL(f)};
 document.getElementById("save").onclick=()=>{
-  const name=document.getElementById("name").value.trim();
-  if(!name){alert("請輸入商品名稱");return}
-  const obj={
-    id:editingId||crypto.randomUUID(),
-    name,shelf:document.getElementById("shelf").value,
-    qty:Math.max(0,Number(document.getElementById("qty").value||0)),
-    note:document.getElementById("note").value.trim()
-  };
-  if(pendingPhoto)obj.photo=pendingPhoto;
-  else if(editingId)obj.photo=data.products.find(p=>p.id===editingId)?.photo||"";
-  if(editingId)data.products=data.products.map(p=>p.id===editingId?obj:p);
+  const name=document.getElementById("name").value.trim();if(!name)return alert("請輸入商品名稱");
+  const obj={id:editingId||crypto.randomUUID(),name,sku:document.getElementById("sku").value.trim(),spec:document.getElementById("spec").value.trim(),
+    barcode:document.getElementById("barcode").value.trim(),vendor:document.getElementById("vendor").value,unit:document.getElementById("unit").value.trim()||"個",
+    parentCategory:document.getElementById("parentCategory").value.trim(),childCategory:document.getElementById("childCategory").value.trim(),
+    location:document.getElementById("location").value.trim(),date:document.getElementById("date").value||today,qty:Math.max(0,Number(document.getElementById("qty").value||0)),
+    minQty:Math.max(0,Number(document.getElementById("minQty").value||0)),cost:Math.max(0,Number(document.getElementById("cost").value||0)),
+    price:Math.max(0,Number(document.getElementById("price").value||0)),note:document.getElementById("note").value.trim()};
+  if(pendingPhoto)obj.photo=pendingPhoto;else if(editingId)obj.photo=data.products.find(p=>p.id===editingId)?.photo||"";
+  if(editingId){const old=data.products.find(p=>p.id===editingId);if(old&&old.qty!==obj.qty){data.transactions.push({id:crypto.randomUUID(),productId:obj.id,type:"修改",delta:obj.qty-Number(old.qty||0),reason:"直接修改庫存",date:today,after:obj.qty,createdAt:new Date().toISOString()})}data.products=data.products.map(p=>p.id===editingId?obj:p)}
   else data.products.push(obj);
   document.getElementById("dialog").close();saveData();
 };
-document.getElementById("shelfSave").onclick=()=>{
-  const s=document.getElementById("shelfName").value.trim();
-  if(!s)return;
-  if(!data.shelves.includes(s))data.shelves.push(s);
-  document.getElementById("shelfDialog").close();saveData();
+document.getElementById("vendorSave").onclick=()=>{const name=document.getElementById("vendorName").value.trim();if(!name)return alert("請輸入廠商名稱");if(!data.vendors.some(v=>v.name===name))data.vendors.push({id:crypto.randomUUID(),name,phone:document.getElementById("vendorPhone").value.trim(),note:document.getElementById("vendorNote").value.trim()});document.getElementById("vendorDialog").close();saveData()};
+document.getElementById("movementSave").onclick=()=>{
+  const qty=Number(document.getElementById("movementQty").value);if(!Number.isFinite(qty)||qty<=0)return alert("請輸入正確數量");
+  const p=data.products.find(x=>x.id===movementId);if(!p)return;const delta=movementType==="入庫"?qty:-qty;
+  if(Number(p.qty||0)+delta<0)return alert("出庫數量不可超過目前庫存");
+  p.qty=Number(p.qty||0)+delta;p.date=today;
+  data.transactions.push({id:crypto.randomUUID(),productId:p.id,type:movementType,delta,reason:document.getElementById("movementReason").value.trim(),date:today,after:p.qty,createdAt:new Date().toISOString()});
+  document.getElementById("movementDialog").close();saveData();
 };
+document.getElementById("documentPhoto").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{document.getElementById("aiPreview").style.display="block";document.getElementById("aiPreview").innerHTML=`<div class="notice">已選擇貨單：${esc(f.name)}<br>下一步正式版會送到安全後端進行 AI 辨識。</div>`};r.readAsDataURL(f)};
+function simulateAIReview(){const name="貨單 "+today+" "+new Date().toLocaleTimeString("zh-TW",{hour12:false});data.documents.push({id:crypto.randomUUID(),name,date:today,status:"待確認"});document.getElementById("aiDialog").close();saveData();setTab("documents");alert("已建立一張「待確認」貨單。正式接上 AI 後，這裡會顯示逐項商品匹配結果。")}
+
 render();
 </script>
 </body>
