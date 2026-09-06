@@ -559,6 +559,20 @@ function getOfflineUser(){
   try{const x=JSON.parse(localStorage.getItem(OFFLINE_USER_KEY)||"null");return x?.id?x:null}catch(_){return null}
 }
 function clearOfflineUser(){try{localStorage.removeItem(OFFLINE_USER_KEY)}catch(_) {}}
+function getSupabaseStoredUser(){
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i)||"";
+      if(!k.includes('-auth-token')) continue;
+      const raw=localStorage.getItem(k);
+      if(!raw) continue;
+      const obj=JSON.parse(raw);
+      const u=obj?.user || obj?.currentSession?.user || obj?.session?.user;
+      if(u?.id) return {id:u.id,email:u.email||""};
+    }
+  }catch(_){}
+  return null;
+}
 
 function openOfflineDB(){
   return new Promise((resolve,reject)=>{
@@ -929,17 +943,19 @@ async function offlineBoot(){
     $("downloadOfflineBtn").onclick=downloadOfflineData;
     window.addEventListener("online",async()=>{
       await updateOfflineUI();
-      // 網路恢復後，如果本機有離線登入身分，就重新取得真正的 Supabase session。
       try{
         if(sb){
           const {data}=await sb.auth.getSession();
-          if(data?.session){session=data.session;saveOfflineUser(session.user);showApp();}
+          if(data?.session){session=data.session;saveOfflineUser(session.user);showApp();renderSearchTools();initSmartSearch();initVoiceSearch();}
         }
       }catch(_){}
       await syncOfflineChanges();
       await render(true);
     });
-    window.addEventListener("offline",async()=>{await updateOfflineUI();await render(true).catch(()=>{})});
+    window.addEventListener("offline",async()=>{
+      await updateOfflineUI();
+      await render(true).catch(()=>{});
+    });
     await updateOfflineUI();
 
     if(!window.supabase){
@@ -948,7 +964,36 @@ async function offlineBoot(){
 
     sb=window.supabase.createClient(CONFIG.url,CONFIG.key);
 
-    // 先看真正的 Supabase session；若現在沒網路，則允許使用上次在線登入留下的本機身分進入離線模式。
+    // 離線時優先使用本機身分與 IndexedDB；不要求每次離線重新通過 Supabase 網路驗證。
+    if(!navigator.onLine){
+      const cachedProducts=await idbGetAll("products").catch(()=>[]);
+      const cachedVendors=await idbGetAll("vendors").catch(()=>[]);
+      const offlineUser=getOfflineUser() || getSupabaseStoredUser() ||
+        ((cachedProducts[0]?.user_id||cachedVendors[0]?.user_id)?{id:cachedProducts[0]?.user_id||cachedVendors[0]?.user_id,email:""}:null);
+      if(offlineUser?.id){
+        saveOfflineUser(offlineUser);
+        session={user:{id:offlineUser.id,email:offlineUser.email||""},_offline:true};
+        showApp();renderSearchTools();initSmartSearch();initVoiceSearch();
+        await loadLocalMeta();
+        await render(true);
+        setTimeout(()=>{
+          if($("offlineNote")){
+            $("offlineNote").classList.remove("hidden");
+            $("offlineNote").textContent=cachedProducts.length
+              ? `🔴 離線模式：目前使用本機資料（${fmt(cachedProducts.length)} 筆商品）。恢復網路後會自動同步，AI 智慧搜尋需要網路。`
+              : "🔴 離線模式：目前還沒有下載商品資料。你可以新增商品；恢復網路後會自動同步。AI 智慧搜尋需要網路。";
+          }
+        },0);
+      }else{
+        showLogin();
+        setLoginMessage("目前沒有網路。請先在線登入一次，讓這台裝置取得離線使用權限；之後即可離線編輯。");
+      }
+
+      // 不在離線模式註冊會清除本機身分的登出事件。
+      setInterval(updateOfflineUI,5000);
+      return;
+    }
+
     let realSession=null;
     try{
       const result=await sb.auth.getSession();
@@ -961,20 +1006,6 @@ async function offlineBoot(){
       showApp();renderSearchTools();initSmartSearch();initVoiceSearch();
       await syncOfflineChanges();
       await render(true);
-    }else if(!navigator.onLine){
-      const offlineUser=getOfflineUser();
-      const cachedProducts=await idbGetAll("products").catch(()=>[]);
-      const cachedVendors=await idbGetAll("vendors").catch(()=>[]);
-      if(offlineUser && (cachedProducts.length||cachedVendors.length)){
-        session={user:{id:offlineUser.id,email:offlineUser.email||""},_offline:true};
-        showApp();renderSearchTools();initSmartSearch();initVoiceSearch();
-        await loadLocalMeta();
-        await render(true);
-        setTimeout(()=>{if($('offlineNote')){$('offlineNote').classList.remove('hidden');$('offlineNote').textContent='🔴 離線模式：目前使用本機資料。恢復網路後會自動同步，AI 智慧搜尋需要網路。'}},0);
-      }else{
-        showLogin();
-        setLoginMessage("目前是離線狀態，而且這台裝置還沒有可用的離線資料。請先在線登入一次，並按「⬇️ 下載離線資料」。");
-      }
     }else{
       showLogin();
     }
@@ -995,9 +1026,11 @@ async function offlineBoot(){
     setInterval(updateOfflineUI,5000);
   }catch(e){
     console.error(e);
-    const offlineUser=getOfflineUser();
-    const hasLocal=!!(await idbGetAll("products").catch(()=>[])).length;
-    if(!navigator.onLine && offlineUser && hasLocal){
+    const cachedProducts=await idbGetAll("products").catch(()=>[]);
+    const offlineUser=getOfflineUser() || getSupabaseStoredUser() ||
+      (cachedProducts[0]?.user_id?{id:cachedProducts[0].user_id,email:""}:null);
+    if(!navigator.onLine && offlineUser?.id){
+      saveOfflineUser(offlineUser);
       session={user:{id:offlineUser.id,email:offlineUser.email||""},_offline:true};
       showApp();renderSearchTools();initSmartSearch();initVoiceSearch();
       await loadLocalMeta();

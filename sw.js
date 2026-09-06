@@ -1,4 +1,4 @@
-const CACHE = 'hardware-inventory-pwa-v2';
+const CACHE = 'hardware-inventory-pwa-v4';
 const APP_SHELL = ['./', './index.html', './manifest.json'];
 const CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
@@ -34,13 +34,13 @@ self.addEventListener('fetch', event => {
 
   if (req.mode === 'navigate' && isApp) {
     event.respondWith((async () => {
+      const cache = await caches.open(CACHE);
       try {
         const fresh = await fetch(req);
-        const cache = await caches.open(CACHE);
-        await cache.put('./index.html', fresh.clone());
+        if (fresh && fresh.ok) await cache.put('./index.html', fresh.clone());
         return fresh;
       } catch (_) {
-        return (await caches.match('./index.html')) || Response.error();
+        return (await cache.match('./index.html')) || (await cache.match('./')) || Response.error();
       }
     })());
     return;
@@ -64,11 +64,11 @@ self.addEventListener('fetch', event => {
 
   if (isApp) {
     event.respondWith((async () => {
-      const cacheHit = await caches.match(req);
+      const cache = await caches.open(CACHE);
+      const cacheHit = await cache.match(req);
       try {
         const fresh = await fetch(req);
-        const cache = await caches.open(CACHE);
-        await cache.put(req, fresh.clone());
+        if (fresh && fresh.ok) await cache.put(req, fresh.clone());
         return fresh;
       } catch (_) {
         return cacheHit || Response.error();
