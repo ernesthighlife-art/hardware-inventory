@@ -1,4 +1,4 @@
-const CACHE = 'hardware-inventory-pwa-v1';
+const CACHE = 'hardware-inventory-pwa-v2';
 const APP_SHELL = ['./', './index.html', './manifest.json'];
 const CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 

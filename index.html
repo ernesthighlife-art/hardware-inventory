@@ -177,7 +177,7 @@ $("loginForm").onsubmit=async e=>{
   }catch(e){setLoginMessage("登入失敗："+(e.message||"請檢查 Email 與密碼。"))}
   finally{$("loginBtn").disabled=false}
 };
-$("logoutBtn").onclick=async()=>{if(sb)await sb.auth.signOut();session=null;showLogin()};
+$("logoutBtn").onclick=async()=>{if(sb&&navigator.onLine)await sb.auth.signOut();session=null;clearOfflineUser();showLogin()};
 
 async function loadMeta(){
   const [v,c,l]=await Promise.all([
@@ -549,6 +549,16 @@ let offlineDB=null;
 let offlineReady=false;
 let syncing=false;
 let syncErrorCount=0;
+const OFFLINE_USER_KEY = "hardware_inventory_offline_user_v2";
+
+function saveOfflineUser(user){
+  if(!user?.id)return;
+  try{localStorage.setItem(OFFLINE_USER_KEY,JSON.stringify({id:user.id,email:user.email||""}))}catch(_){}
+}
+function getOfflineUser(){
+  try{const x=JSON.parse(localStorage.getItem(OFFLINE_USER_KEY)||"null");return x?.id?x:null}catch(_){return null}
+}
+function clearOfflineUser(){try{localStorage.removeItem(OFFLINE_USER_KEY)}catch(_) {}}
 
 function openOfflineDB(){
   return new Promise((resolve,reject)=>{
@@ -735,7 +745,7 @@ async function openProduct(id=null){
 }
 
 async function saveProductOfflineOrOnline(){
-  const user=(await sb.auth.getUser()).data.user;if(!user)return;
+  const user=session?.user || getOfflineUser();if(!user?.id)return alert("尚未登入，請先在線登入一次。");
   const name=$("name").value.trim();if(!name)return alert("請輸入商品名稱");$("saveProduct").disabled=true;
   try{
     const base={name,sku:$("sku").value.trim()||null,spec:$("spec").value.trim()||null,barcode:$("barcode").value.trim()||null,vendor_id:$("vendor").value||null,unit:$("unit").value.trim()||"個",parent_category:$("parentCategory").value.trim()||null,child_category:$("childCategory").value.trim()||null,location:$("location").value.trim()||null,record_date:$("date").value||today,min_stock:Math.max(0,Number($("minQty").value||0)),cost:Math.max(0,Number($("cost").value||0)),price:Math.max(0,Number($("price").value||0)),note:$("note").value.trim()||null,category:$("parentCategory").value.trim()||null};
@@ -913,19 +923,90 @@ async function downloadOfflineData(){
 async function offlineBoot(){
   try{
     await openOfflineDB();
-    if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").catch(()=>{});}
-    $("syncBtn").onclick=syncOfflineChanges;$("downloadOfflineBtn").onclick=downloadOfflineData;
-    window.addEventListener("online",async()=>{await updateOfflineUI();await syncOfflineChanges()});
-    window.addEventListener("offline",updateOfflineUI);
+    if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"}).catch(()=>{});}
+
+    $("syncBtn").onclick=syncOfflineChanges;
+    $("downloadOfflineBtn").onclick=downloadOfflineData;
+    window.addEventListener("online",async()=>{
+      await updateOfflineUI();
+      // 網路恢復後，如果本機有離線登入身分，就重新取得真正的 Supabase session。
+      try{
+        if(sb){
+          const {data}=await sb.auth.getSession();
+          if(data?.session){session=data.session;saveOfflineUser(session.user);showApp();}
+        }
+      }catch(_){}
+      await syncOfflineChanges();
+      await render(true);
+    });
+    window.addEventListener("offline",async()=>{await updateOfflineUI();await render(true).catch(()=>{})});
     await updateOfflineUI();
-    if(!window.supabase)throw new Error("Supabase 元件載入失敗。若這是第一次使用離線版，請先在線開啟一次網站。");
+
+    if(!window.supabase){
+      throw new Error("Supabase 元件載入失敗。請先在線開啟一次網站，讓網站完成離線快取。");
+    }
+
     sb=window.supabase.createClient(CONFIG.url,CONFIG.key);
-    const {data,error}=await sb.auth.getSession();
-    if(error)throw error;session=data.session||null;
-    if(session){showApp();renderSearchTools();initSmartSearch();initVoiceSearch();if(navigator.onLine){await loadMeta();await syncOfflineChanges()}else await loadLocalMeta();await render(true)}else showLogin();
-    sb.auth.onAuthStateChange(async(_event,newSession)=>{session=newSession||null;if(session){showApp();renderSearchTools();initSmartSearch();initVoiceSearch();if(navigator.onLine)await syncOfflineChanges();await render(true)}else showLogin()});
+
+    // 先看真正的 Supabase session；若現在沒網路，則允許使用上次在線登入留下的本機身分進入離線模式。
+    let realSession=null;
+    try{
+      const result=await sb.auth.getSession();
+      if(!result.error)realSession=result.data?.session||null;
+    }catch(_){}
+
+    if(realSession){
+      session=realSession;
+      saveOfflineUser(session.user);
+      showApp();renderSearchTools();initSmartSearch();initVoiceSearch();
+      await syncOfflineChanges();
+      await render(true);
+    }else if(!navigator.onLine){
+      const offlineUser=getOfflineUser();
+      const cachedProducts=await idbGetAll("products").catch(()=>[]);
+      const cachedVendors=await idbGetAll("vendors").catch(()=>[]);
+      if(offlineUser && (cachedProducts.length||cachedVendors.length)){
+        session={user:{id:offlineUser.id,email:offlineUser.email||""},_offline:true};
+        showApp();renderSearchTools();initSmartSearch();initVoiceSearch();
+        await loadLocalMeta();
+        await render(true);
+        setTimeout(()=>{if($('offlineNote')){$('offlineNote').classList.remove('hidden');$('offlineNote').textContent='🔴 離線模式：目前使用本機資料。恢復網路後會自動同步，AI 智慧搜尋需要網路。'}},0);
+      }else{
+        showLogin();
+        setLoginMessage("目前是離線狀態，而且這台裝置還沒有可用的離線資料。請先在線登入一次，並按「⬇️ 下載離線資料」。");
+      }
+    }else{
+      showLogin();
+    }
+
+    sb.auth.onAuthStateChange(async(_event,newSession)=>{
+      session=newSession||null;
+      if(session){
+        saveOfflineUser(session.user);
+        showApp();renderSearchTools();initSmartSearch();initVoiceSearch();
+        if(navigator.onLine)await syncOfflineChanges();
+        await render(true);
+      }else if(navigator.onLine){
+        clearOfflineUser();
+        showLogin();
+      }
+    });
+
     setInterval(updateOfflineUI,5000);
-  }catch(e){showLogin();setLoginMessage("系統初始化失敗："+(e.message||String(e)))}
+  }catch(e){
+    console.error(e);
+    const offlineUser=getOfflineUser();
+    const hasLocal=!!(await idbGetAll("products").catch(()=>[])).length;
+    if(!navigator.onLine && offlineUser && hasLocal){
+      session={user:{id:offlineUser.id,email:offlineUser.email||""},_offline:true};
+      showApp();renderSearchTools();initSmartSearch();initVoiceSearch();
+      await loadLocalMeta();
+      await render(true);
+    }else{
+      showLogin();
+      setLoginMessage("系統初始化失敗："+(e.message||String(e)));
+    }
+  }
 }
 
 async function render(first=false){
