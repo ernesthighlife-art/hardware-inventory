@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>我的庫存</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f6f8;color:#171717}
+button,input{font:inherit}
+header{position:sticky;top:0;z-index:5;background:#111827;color:white;padding:18px 16px 14px}
+header h1{margin:0 0 12px;font-size:24px}
+.search{width:100%;padding:12px 14px;border:0;border-radius:12px;background:#fff;color:#111}
+main{padding:16px 16px 90px;max-width:700px;margin:auto}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+.tabs button,.primary,.secondary{border:0;border-radius:12px;padding:12px;font-weight:700}
+.tabs button{background:white;color:#555}
+.tabs button.active{background:#111827;color:white}
+.card{background:white;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 5px #00000010}
+.card h3{margin:0 0 6px}
+.meta{color:#666;font-size:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.badge{background:#eef2ff;padding:5px 9px;border-radius:999px;font-size:13px}
+.primary{background:#111827;color:white;width:100%;margin-bottom:10px}
+.secondary{background:#e5e7eb;color:#111}
+.danger{background:#fee2e2;color:#991b1b}
+.empty{text-align:center;color:#777;padding:40px 10px}
+dialog{border:0;border-radius:18px;width:min(92%,520px);padding:0;box-shadow:0 15px 60px #0004}
+dialog::backdrop{background:#0007}
+.form{padding:20px}
+.form h2{margin-top:0}
+label{display:block;font-size:14px;font-weight:700;margin:12px 0 6px}
+input[type=text],input[type=number],select,textarea{width:100%;padding:11px;border:1px solid #ddd;border-radius:10px;background:#fff}
+textarea{min-height:80px;resize:vertical}
+.actions{display:flex;gap:8px;margin-top:18px}
+.actions button{flex:1}
+.photo-preview{width:100%;max-height:180px;object-fit:contain;border-radius:12px;margin-top:8px;background:#f3f4f6}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat .card{margin:0}
+.stat strong{font-size:28px;display:block}
+.fab{position:fixed;right:18px;bottom:20px;width:58px;height:58px;border-radius:50%;border:0;background:#111827;color:#fff;font-size:30px;box-shadow:0 5px 20px #0003}
+.item-actions{display:flex;gap:7px;margin-top:12px}
+.item-actions button{border:0;border-radius:9px;padding:8px 10px;background:#f1f1f1}
+</style>
+</head>
+<body>
+<header>
+  <h1>📦 我的庫存</h1>
+  <input id="search" class="search" placeholder="搜尋商品、層架、備註…">
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="active" data-tab="products">商品</button>
+    <button data-tab="shelves">層架</button>
+    <button data-tab="stats">統計</button>
+  </div>
+  <div id="app"></div>
+</main>
+
+<button class="fab" id="addBtn">＋</button>
+
+<dialog id="dialog">
+  <div class="form">
+    <h2 id="dialogTitle">新增商品</h2>
+    <label>商品名稱</label>
+    <input id="name" type="text" placeholder="例如：十字螺絲">
+    <label>所在層架</label>
+    <select id="shelf"></select>
+    <label>數量</label>
+    <input id="qty" type="number" min="0" value="1">
+    <label>備註</label>
+    <textarea id="note" placeholder="例如：黑色、3cm"></textarea>
+    <label>商品照片</label>
+    <input id="photo" type="file" accept="image/*" capture="environment">
+    <img id="preview" class="photo-preview" style="display:none">
+    <div class="actions">
+      <button class="secondary" id="cancel">取消</button>
+      <button class="primary" id="save">儲存</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="shelfDialog">
+  <div class="form">
+    <h2>新增層架</h2>
+    <label>層架名稱</label>
+    <input id="shelfName" type="text" placeholder="例如：A01 第一層">
+    <div class="actions">
+      <button class="secondary" id="shelfCancel">取消</button>
+      <button class="primary" id="shelfSave">新增</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const KEY="my_inventory_v1";
+let data=JSON.parse(localStorage.getItem(KEY)||'null')||{
+  shelves:["A01 第一層","A01 第二層","A01 第三層"],
+  products:[]
+};
+let editingId=null, currentTab="products", pendingPhoto=null;
+
+function saveData(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function shelfOptions(selected=""){
+  return data.shelves.map(s=>`<option ${s===selected?"selected":""}>${esc(s)}</option>`).join("")
+}
+function render(){
+  const q=document.getElementById("search").value.trim().toLowerCase();
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===currentTab));
+  if(currentTab==="products") renderProducts(q);
+  if(currentTab==="shelves") renderShelves(q);
+  if(currentTab==="stats") renderStats();
+}
+function renderProducts(q=""){
+  let ps=data.products.filter(p=>(p.name+" "+p.shelf+" "+p.note).toLowerCase().includes(q));
+  document.getElementById("app").innerHTML=`
+    <button class="primary" onclick="openProduct()">＋ 新增商品</button>
+    ${ps.length?ps.map(p=>`
+      <div class="card">
+        <div class="row"><h3>${esc(p.name)}</h3><span class="badge">數量 ${p.qty}</span></div>
+        <div class="meta">📍 ${esc(p.shelf)}</div>
+        ${p.note?`<div class="meta">📝 ${esc(p.note)}</div>`:""}
+        ${p.photo?`<img class="photo-preview" src="${p.photo}">`:""}
+        <div class="item-actions">
+          <button onclick="openProduct('${p.id}')">✏️ 編輯</button>
+          <button onclick="changeQty('${p.id}',1)">＋1</button>
+          <button onclick="changeQty('${p.id}',-1)">−1</button>
+          <button class="danger" onclick="removeProduct('${p.id}')">刪除</button>
+        </div>
+      </div>`).join(""):`<div class="empty">目前沒有商品<br>按右下角 ＋ 開始建立庫存</div>`}
+  `;
+}
+function renderShelves(q=""){
+  let ss=data.shelves.filter(s=>s.toLowerCase().includes(q));
+  document.getElementById("app").innerHTML=`
+    <button class="primary" onclick="openShelf()">＋ 新增層架</button>
+    ${ss.map(s=>{
+      const count=data.products.filter(p=>p.shelf===s).length;
+      return `<div class="card"><div class="row"><div><h3>🗄️ ${esc(s)}</h3><div class="meta">${count} 項商品</div></div>
+      <button class="secondary" onclick="filterShelf('${esc(s)}')">查看</button></div></div>`
+    }).join("")}
+  `;
+}
+function renderStats(){
+  const total=data.products.reduce((a,p)=>a+Number(p.qty||0),0);
+  document.getElementById("app").innerHTML=`
+    <div class="stat">
+      <div class="card"><span class="meta">商品種類</span><strong>${data.products.length}</strong></div>
+      <div class="card"><span class="meta">庫存總數</span><strong>${total}</strong></div>
+    </div>
+    <div class="card"><h3>各層架</h3>
+      ${data.shelves.map(s=>{
+        const ps=data.products.filter(p=>p.shelf===s);
+        const n=ps.reduce((a,p)=>a+Number(p.qty||0),0);
+        return `<div class="row" style="padding:9px 0;border-bottom:1px solid #eee"><span>${esc(s)}</span><span>${ps.length} 種 / ${n} 件</span></div>`
+      }).join("")}
+    </div>
+  `;
+}
+function openProduct(id=null){
+  editingId=id;
+  pendingPhoto=null;
+  const p=id?data.products.find(x=>x.id===id):null;
+  document.getElementById("dialogTitle").textContent=p?"編輯商品":"新增商品";
+  document.getElementById("name").value=p?.name||"";
+  document.getElementById("shelf").innerHTML=shelfOptions(p?.shelf||data.shelves[0]||"");
+  document.getElementById("qty").value=p?.qty??1;
+  document.getElementById("note").value=p?.note||"";
+  const preview=document.getElementById("preview");
+  preview.style.display=p?.photo?"block":"none"; preview.src=p?.photo||"";
+  document.getElementById("photo").value="";
+  document.getElementById("dialog").showModal();
+}
+function openShelf(){document.getElementById("shelfName").value="";document.getElementById("shelfDialog").showModal()}
+function changeQty(id,n){
+  const p=data.products.find(x=>x.id===id); if(!p)return;
+  p.qty=Math.max(0,Number(p.qty)+n); saveData();
+}
+function removeProduct(id){
+  if(confirm("確定刪除這個商品？")){data.products=data.products.filter(p=>p.id!==id);saveData()}
+}
+function filterShelf(s){
+  document.getElementById("search").value=s;currentTab="products";render();
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;render()});
+document.getElementById("search").oninput=render;
+document.getElementById("addBtn").onclick=()=>currentTab==="shelves"?openShelf():openProduct();
+document.getElementById("cancel").onclick=()=>document.getElementById("dialog").close();
+document.getElementById("shelfCancel").onclick=()=>document.getElementById("shelfDialog").close();
+
+document.getElementById("photo").onchange=e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader(); r.onload=()=>{
+    pendingPhoto=r.result;
+    const p=document.getElementById("preview");p.src=pendingPhoto;p.style.display="block";
+  };r.readAsDataURL(f);
+};
+document.getElementById("save").onclick=()=>{
+  const name=document.getElementById("name").value.trim();
+  if(!name){alert("請輸入商品名稱");return}
+  const obj={
+    id:editingId||crypto.randomUUID(),
+    name,shelf:document.getElementById("shelf").value,
+    qty:Math.max(0,Number(document.getElementById("qty").value||0)),
+    note:document.getElementById("note").value.trim()
+  };
+  if(pendingPhoto)obj.photo=pendingPhoto;
+  else if(editingId)obj.photo=data.products.find(p=>p.id===editingId)?.photo||"";
+  if(editingId)data.products=data.products.map(p=>p.id===editingId?obj:p);
+  else data.products.push(obj);
+  document.getElementById("dialog").close();saveData();
+};
+document.getElementById("shelfSave").onclick=()=>{
+  const s=document.getElementById("shelfName").value.trim();
+  if(!s)return;
+  if(!data.shelves.includes(s))data.shelves.push(s);
+  document.getElementById("shelfDialog").close();saveData();
+};
+render();
+</script>
+</body>
+</html>
