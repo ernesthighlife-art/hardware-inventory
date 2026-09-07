@@ -27,7 +27,7 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 .addbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.hint{font-size:13px;color:var(--muted)}.list{display:grid;gap:10px}
 .product{padding:14px}.product-top{display:flex;gap:12px;align-items:flex-start}.thumb{width:68px;height:68px;flex:none;border-radius:13px;background:#f2ece4;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#a89a8c;font-size:25px}.thumb img{width:100%;height:100%;object-fit:cover}
 .info{min-width:0;flex:1}.name{font-weight:850;font-size:16px;line-height:1.35}.sku{font-size:12px;color:var(--muted);margin-top:2px}.meta{font-size:13px;color:#6b5f55;line-height:1.62;margin-top:6px}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.badge{font-size:12px;padding:4px 8px;border-radius:999px;background:#f3eee8;color:#5f554c}.badge.ok{background:var(--successBg);color:var(--success)}.badge.low{background:var(--warnBg);color:var(--warn)}.badge.out{background:var(--dangerBg);color:var(--danger)}
-.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.actions button{border:1px solid var(--line);background:#fbf8f3;border-radius:10px;padding:8px 10px;font-size:13px}.review-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.review-actions button{min-width:118px}.review-item-confirmed{border:2px solid var(--success)!important}.review-item-removed{display:none!important}.review-status{font-weight:800}.review-note{font-size:12px;color:var(--muted);margin-top:6px}.danger{background:var(--dangerBg)!important;color:var(--danger)!important;border-color:#ffd4cf!important}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.actions button{border:1px solid var(--line);background:#fbf8f3;border-radius:10px;padding:8px 10px;font-size:13px}.review-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.review-actions button{min-width:118px}.review-item-confirmed{border:2px solid var(--success)!important}.review-item-removed{display:none!important}.review-actions .is-confirmed{background:#d9f7e5!important;color:#167a45!important;border-color:#8bd7aa!important}.review-actions .is-removed{background:#f1f1f1!important;color:#777!important;border-color:#d5d5d5!important;text-decoration:line-through}.review-status{font-weight:800}.review-note{font-size:12px;color:var(--muted);margin-top:6px}.danger{background:var(--dangerBg)!important;color:var(--danger)!important;border-color:#ffd4cf!important}
 .section{padding:16px;margin-bottom:12px}.section h3{margin:0 0 10px}.rows{display:grid}.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}
 .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:13px}.table{width:100%;border-collapse:collapse;min-width:850px}.table th,.table td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:13px}.table th{background:#fbf7f1;color:#695d53}.table td.num{text-align:right}
 .empty{text-align:center;color:var(--muted);padding:45px 12px}.pager{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px}.notice{background:var(--accentBg);color:#7a4a19;border-radius:13px;padding:11px 13px;font-size:13px;line-height:1.55;margin-bottom:12px}
@@ -456,35 +456,38 @@ function locationDescendantIds(rootId){
 }
 async function removeVendor(id){
   const v=vendorCache.find(x=>x.id===id);if(!v)return;
-  if(!confirm(`確定刪除廠商「${v.name}」？\n只解除這一個廠商與商品的關聯，不會刪除商品或其他廠商。`))return;
+  if(!confirm(`確定刪除廠商「${v.name}」？\n只解除這一家廠商與商品的關聯，不會刪除商品。`))return;
   try{
     if(!appOnline){
-      const local=await idbGetAll('products').catch(()=>[]);
-      for(const p of local.filter(p=>p.vendor_id===id)){p.vendor_id=null;await cacheProduct(p);}
-      await idbDelete('vendors',id);
-      await enqueue('vendor_delete',{id});
-      vendorCache=vendorCache.filter(x=>x.id!==id);
-      productCache=productCache.map(p=>p.vendor_id===id?{...p,vendor_id:null}:p);
-      productFilters.vendor='';
-      await renderVendors();
-      return;
+      const localProducts=await idbGetAll("products").catch(()=>[]);
+      for(const p of localProducts.filter(p=>p.vendor_id===id)){p.vendor_id=null;await cacheProduct(p);}
+      await idbDelete("vendors",id);
+      await enqueue("vendor_delete",{id});
+    }else{
+      const prod=await sb.from("products").update({vendor_id:null}).eq("vendor_id",id).eq("user_id",session.user.id);
+      if(prod.error)throw prod.error;
+      const del=await sb.from("vendors").delete().eq("id",id).eq("user_id",session.user.id).select("id");
+      if(del.error)throw del.error;
+      if(!del.data?.length)throw new Error("廠商沒有成功刪除，請檢查 DELETE 權限。");
+      const stale=await idbGetAll("products").catch(()=>[]);
+      for(const p of stale.filter(p=>p.vendor_id===id)){p.vendor_id=null;await cacheProduct(p);}
+      await idbDelete("vendors",id).catch(()=>{});
     }
-    const r=await sb.rpc('delete_vendor_safe',{p_vendor_id:id});
-    if(r.error)throw r.error;
-    const check=await sb.from('vendors').select('id').eq('id',id).maybeSingle();
-    if(check.error)throw check.error;
-    if(check.data)throw new Error('廠商尚未從雲端移除，請稍後再試。');
-    const localProducts=await idbGetAll('products').catch(()=>[]);
-    for(const p of localProducts.filter(p=>p.vendor_id===id)){p.vendor_id=null;await cacheProduct(p);}
-    productCache=productCache.map(p=>p.vendor_id===id?{...p,vendor_id:null}:p);
-    await idbDelete('vendors',id).catch(()=>{});
-    vendorCache=vendorCache.filter(x=>x.id!==id);
-    productFilters.vendor='';
+    productFilters.vendor="";
+    // 刪除後重新從雲端抓一次，確保列表真的消失；不靠舊快取。
+    if(appOnline){
+      const fresh=await sb.from("vendors").select("id,name,phone,address,contact_name,note,user_id,created_at,updated_at").order("name").limit(1000);
+      if(fresh.error)throw fresh.error;
+      vendorCache=fresh.data||[];
+      await cacheRows("vendors",vendorCache);
+    }else{
+      await loadLocalMeta();
+    }
     await renderVendors();
-    if(currentTab==='products')await loadProducts();
     await loadStats();
+    if(currentTab==="products")await loadProducts();
   }catch(e){
-    alert('刪除廠商失敗：'+(e.message||String(e)));
+    alert("刪除廠商失敗："+(e.message||String(e)));
     await renderVendors().catch(()=>{});
   }
 }
@@ -1172,14 +1175,33 @@ async function openPurchaseReview(documentId){
   $('confirmPurchaseReview').style.display=d.status==='已確認'?'none':'';updateReviewSummary();$('purchaseReviewDialog').showModal();
 }
 async function removePurchaseReviewItem(itemId){
-  const card=document.querySelector(`.purchase-item[data-item-id="${CSS.escape(itemId)}"]`);if(!card)return;if(!confirm('確定刪除此筆貨單商品？刪除後不會入庫。'))return;
-  setReviewItemState(itemId,{removed:true,confirmed:false});card.classList.add('review-item-removed');
-  try{if(appOnline){const r=await sb.from('purchase_document_items').update({match_status:'忽略',updated_at:new Date().toISOString()}).eq('id',itemId).eq('user_id',session.user.id);if(r.error)throw r.error;}updateReviewSummary();}
-  catch(e){card.classList.remove('review-item-removed');setReviewItemState(itemId,{removed:false});alert('刪除此筆失敗：'+(e.message||String(e)))}
+  const card=document.querySelector(`.purchase-item[data-item-id="${CSS.escape(itemId)}"]`);
+  if(!card)return;
+  if(!confirm("確定刪除此筆貨單商品？刪除後不會入庫。"))return;
+  try{
+    if(appOnline){
+      const r=await sb.from("purchase_document_items").delete().eq("id",itemId).eq("user_id",session.user.id);
+      if(r.error)throw r.error;
+    }else{
+      await idbDelete("purchase_document_items",itemId).catch(()=>{});
+    }
+    setReviewItemState(itemId,{removed:true,confirmed:false});
+    card.remove();
+    updateReviewSummary();
+  }catch(e){
+    alert("刪除此筆失敗："+(e.message||String(e)));
+  }
 }
 function confirmPurchaseReviewItem(itemId){
-  const card=document.querySelector(`.purchase-item[data-item-id="${CSS.escape(itemId)}"]`);if(!card)return;const qty=Number(card.querySelector('.ri-qty')?.value||0),name=card.querySelector('.ri-name')?.value.trim();if(!name||qty<=0)return alert('請先確認商品名稱與數量。');
-  setReviewItemState(itemId,{confirmed:true,removed:false});card.classList.add('review-item-confirmed');const b=card.querySelector('.review-status');if(b){b.className='badge ok review-status';b.textContent='✅ 已確認';}updateReviewSummary();
+  const card=document.querySelector(`.purchase-item[data-item-id="${CSS.escape(itemId)}"]`);if(!card)return;
+  const qty=Number(card.querySelector(".ri-qty")?.value||0),name=card.querySelector(".ri-name")?.value.trim();
+  if(!name||qty<=0)return alert("請先確認商品名稱與數量。");
+  setReviewItemState(itemId,{confirmed:true,removed:false});
+  card.classList.remove("review-item-removed");
+  card.classList.add("review-item-confirmed");
+  const b=card.querySelector(".review-status");if(b){b.className="badge ok review-status";b.textContent="✅ 已確認";}
+  const btn=card.querySelector("[data-review-confirm]");if(btn){btn.classList.add("is-confirmed");btn.textContent="✅ 已確認";btn.disabled=true;}
+  updateReviewSummary();
 }
 async function ensureVendorForReview(name,id){
   if(id)return id;
