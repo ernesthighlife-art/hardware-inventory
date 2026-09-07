@@ -27,7 +27,7 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 .addbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.hint{font-size:13px;color:var(--muted)}.list{display:grid;gap:10px}
 .product{padding:14px}.product-top{display:flex;gap:12px;align-items:flex-start}.thumb{width:68px;height:68px;flex:none;border-radius:13px;background:#f2ece4;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#a89a8c;font-size:25px}.thumb img{width:100%;height:100%;object-fit:cover}
 .info{min-width:0;flex:1}.name{font-weight:850;font-size:16px;line-height:1.35}.sku{font-size:12px;color:var(--muted);margin-top:2px}.meta{font-size:13px;color:#6b5f55;line-height:1.62;margin-top:6px}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.badge{font-size:12px;padding:4px 8px;border-radius:999px;background:#f3eee8;color:#5f554c}.badge.ok{background:var(--successBg);color:var(--success)}.badge.low{background:var(--warnBg);color:var(--warn)}.badge.out{background:var(--dangerBg);color:var(--danger)}
-.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.actions button{border:1px solid var(--line);background:#fbf8f3;border-radius:10px;padding:8px 10px;font-size:13px}.review-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.review-actions button{min-width:118px}.review-item-confirmed{border:2px solid var(--success)!important}.review-item-removed{display:none!important}.review-actions .is-confirmed{background:#d9f7e5!important;color:#167a45!important;border-color:#8bd7aa!important}.review-actions .is-removed{background:#f1f1f1!important;color:#777!important;border-color:#d5d5d5!important;text-decoration:line-through}.review-status{font-weight:800}.review-note{font-size:12px;color:var(--muted);margin-top:6px}.keyword-list{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.keyword-list .badge{background:#fff1df;color:#7a4a19}.danger{background:var(--dangerBg)!important;color:var(--danger)!important;border-color:#ffd4cf!important}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.actions button{border:1px solid var(--line);background:#fbf8f3;border-radius:10px;padding:8px 10px;font-size:13px}.review-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.review-actions button{min-width:118px}.review-item-confirmed{border:2px solid var(--success)!important}.review-item-removed{display:none!important}.review-actions .is-confirmed{background:#d9f7e5!important;color:#167a45!important;border-color:#8bd7aa!important}.review-actions .is-removed{background:#f1f1f1!important;color:#777!important;border-color:#d5d5d5!important;text-decoration:line-through}.review-status{font-weight:800}.review-note{font-size:12px;color:var(--muted);margin-top:6px}.keyword-list{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.keyword-list .badge{background:#fff1df;color:#7a4a19}.price-compare{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.price-compare .badge.low-price{background:#e9f6ef;color:#277354}.price-compare .badge.high-price{background:#fff0ed;color:#ad3d32}.price-compare .badge small{font-size:11px;font-weight:700}.danger{background:var(--dangerBg)!important;color:var(--danger)!important;border-color:#ffd4cf!important}
 .section{padding:16px;margin-bottom:12px}.section h3{margin:0 0 10px}.rows{display:grid}.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}
 .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:13px}.table{width:100%;border-collapse:collapse;min-width:850px}.table th,.table td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:13px}.table th{background:#fbf7f1;color:#695d53}.table td.num{text-align:right}
 .empty{text-align:center;color:var(--muted);padding:45px 12px}.pager{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px}.notice{background:var(--accentBg);color:#7a4a19;border-radius:13px;padding:11px 13px;font-size:13px;line-height:1.55;margin-bottom:12px}
@@ -268,6 +268,56 @@ function clearProductFilters(){
 }
 function setQuickStockFilter(type){productFilters.stock=type;page=0;loadProducts();}
 
+async function loadPurchasePriceSummaries(products){
+  const ids=[...new Set((products||[]).map(p=>p?.id).filter(Boolean))];
+  const result={};
+  if(!ids.length || !appOnline)return result;
+  try{
+    const ir=await sb.from('purchase_document_items')
+      .select('id,product_id,document_id,unit_price,created_at')
+      .in('product_id',ids)
+      .gt('unit_price',0)
+      .order('created_at',{ascending:false})
+      .limit(5000);
+    if(ir.error)throw ir.error;
+    const items=ir.data||[];
+    const docIds=[...new Set(items.map(x=>x.document_id).filter(Boolean))];
+    if(!docIds.length)return result;
+    const dr=await sb.from('purchase_documents')
+      .select('id,vendor_id,document_date,created_at')
+      .in('id',docIds)
+      .limit(5000);
+    if(dr.error)throw dr.error;
+    const docs=new Map((dr.data||[]).map(d=>[d.id,d]));
+    const byKey=new Map();
+    for(const it of items){
+      const d=docs.get(it.document_id);if(!d?.vendor_id)continue;
+      const key=`${it.product_id}__${d.vendor_id}`;
+      const when=String(d.document_date||d.created_at||it.created_at||'');
+      const prev=byKey.get(key);
+      if(!prev || when>prev.when || (when===prev.when && String(it.created_at||'')>String(prev.created_at||''))){
+        byKey.set(key,{product_id:it.product_id,vendor_id:d.vendor_id,price:Number(it.unit_price||0),when,created_at:it.created_at||''});
+      }
+    }
+    const groups={};
+    for(const row of byKey.values())(groups[row.product_id]??=[]).push(row);
+    for(const [productId,rows] of Object.entries(groups)){
+      const valid=rows.filter(r=>Number.isFinite(r.price));
+      if(!valid.length)continue;
+      valid.sort((a,b)=>a.price-b.price);
+      const min=valid[0],max=valid[valid.length-1];
+      result[productId]={
+        count:valid.length,
+        min:{vendorName:vendorName(min.vendor_id),price:min.price},
+        max:{vendorName:vendorName(max.vendor_id),price:max.price}
+      };
+    }
+  }catch(e){
+    console.warn('讀取廠商進貨價格比較失敗：',e);
+  }
+  return result;
+}
+
 async function loadProducts(){
   if(searchMode==="smart" && smartQuery){
     return runSmartSearch(smartQuery,{keepMode:true});
@@ -291,7 +341,8 @@ async function loadProducts(){
   const {data,error,count}=await query.order("name").range(from,to);
   if(error)throw new Error("讀取商品清單失敗："+error.message);
   totalCount=count||0;productCache=data||[];
-  const rows=await Promise.all(productCache.map(async p=>({...p,_photo:await signedPhoto(p.photo_path)})));
+  const priceMap=await loadPurchasePriceSummaries(productCache);
+  const rows=await Promise.all(productCache.map(async p=>({...p,_photo:await signedPhoto(p.photo_path),_priceSummary:priceMap[p.id]||null})));
   renderProducts(rows);
 }
 
@@ -309,7 +360,8 @@ async function runSmartSearch(q,options={}){
     if(error)throw error;
     if(!data?.ok)throw new Error(data?.error||"智慧搜尋失敗");
     totalCount=Number(data.count||0);productCache=data.data||[];smartFilters=data.filters||null;
-    const rows=await Promise.all(productCache.map(async p=>({...p,_photo:await signedPhoto(p.photo_path)})));
+    const priceMap=await loadPurchasePriceSummaries(productCache);
+    const rows=await Promise.all(productCache.map(async p=>({...p,_photo:await signedPhoto(p.photo_path),_priceSummary:priceMap[p.id]||null})));
     renderProducts(rows);
     const f=data.filters||{};const parts=[];
     if(f.vendor)parts.push(`廠商：${f.vendor}`);
@@ -330,7 +382,8 @@ async function runSmartSearch(q,options={}){
     const r=await query.order("name").range(from,to);
     if(r.error)throw new Error(r.error.message);
     totalCount=r.count||0;productCache=r.data||[];
-    const rows=await Promise.all(productCache.map(async p=>({...p,_photo:await signedPhoto(p.photo_path)})));
+    const priceMap=await loadPurchasePriceSummaries(productCache);
+    const rows=await Promise.all(productCache.map(async p=>({...p,_photo:await signedPhoto(p.photo_path),_priceSummary:priceMap[p.id]||null})));
     renderProducts(rows);
     if($("smartSummary"))$("smartSummary").textContent="⚪ 一般搜尋結果："+q;
   }finally{
@@ -346,7 +399,7 @@ function renderProducts(ps){
       <div class="product-top"><div class="thumb">${p._photo?`<img src="${p._photo}">`:"📦"}</div><div class="info"><div class="name">${esc(p.name||"未命名商品")}${p.brand?` <span class="badge" style="margin-left:7px">🏷️ ${esc(p.brand)}</span>`:""}</div>
       ${p.sku?`<div class="sku">編號：${esc(p.sku)}</div>`:""}<div class="meta">${p.spec?`規格：${esc(p.spec)}<br>`:""}🏭 ${esc(vendorName(p.vendor_id))}${p.location?`　📍 ${esc(p.location)}`:""}<br>
       ${p.parent_category?`📂 ${esc(p.parent_category)}`:""}${p.child_category?`　└ ${esc(p.child_category)}`:""}${p.record_date?`<br>📅 ${esc(p.record_date)}`:""}</div>
-      <div class="badges"><span class="badge ${st[1]}">${st[0]}</span><span class="badge">庫存 ${fmt(p.stock)} ${esc(p.sale_unit||p.unit||"個")}</span>${p.min_stock?`<span class="badge">最低 ${fmt(p.min_stock)}</span>`:""}</div>${keywordArray(p.keywords).length?`<div class="keyword-list">${keywordArray(p.keywords).map(k=>`<span class="badge">🔑 ${esc(k)}</span>`).join("")}</div>`:""}</div></div>
+      <div class="badges"><span class="badge ${st[1]}">${st[0]}</span><span class="badge">庫存 ${fmt(p.stock)} ${esc(p.sale_unit||p.unit||"個")}</span>${p.min_stock?`<span class="badge">最低 ${fmt(p.min_stock)}</span>`:""}</div>${keywordArray(p.keywords).length?`<div class="keyword-list">${keywordArray(p.keywords).map(k=>`<span class="badge">🔑 ${esc(k)}</span>`).join("")}</div>`:""}${p._priceSummary&&p._priceSummary.count>=2?`<div class="price-compare"><span class="badge low-price">🟢 最低進貨價：${esc(p._priceSummary.min.vendorName)} NT$ ${fmtMoney(p._priceSummary.min.price).replace('NT$ ','')}</span><span class="badge high-price">🔴 最高進貨價：${esc(p._priceSummary.max.vendorName)} NT$ ${fmtMoney(p._priceSummary.max.price).replace('NT$ ','')}</span></div>`:""}</div></div>
       <div class="actions"><button onclick="openMovement('${p.id}','入庫')">📥 入庫</button><button onclick="openMovement('${p.id}','出庫')">📤 出庫</button><button onclick="openProduct('${p.id}')">✏️ 編輯</button><button onclick="showProductHistory('${p.id}')">📋 紀錄</button><button class="danger" onclick="removeProduct('${p.id}')">刪除</button></div>
     </div>`}).join(""):`<div class="card empty">目前沒有商品，或沒有符合搜尋條件的商品。</div>`}</div>
     <div class="pager"><button class="secondary" onclick="prevPage()" ${page===0?"disabled":""}>上一頁</button><span class="hint">第 ${page+1} / ${Math.max(1,Math.ceil(totalCount/PAGE_SIZE))} 頁</span><button class="secondary" onclick="nextPage()" ${(page+1)*PAGE_SIZE>=totalCount?"disabled":""}>下一頁</button></div>`;
