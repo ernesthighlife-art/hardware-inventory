@@ -117,7 +117,7 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 <div class="two"><div><label>所在位置</label><div class="inline-actions"><input id="location" list="locationOptions" type="text" placeholder="例如：A01-03"><button type="button" class="secondary mini" id="quickAddLocation">＋位置</button></div><datalist id="locationOptions"></datalist></div><div><label>日期</label><input id="date" type="date"></div></div>
 <div class="two"><div><label>目前數量</label><input id="qty" type="number" min="0" value="0"></div><div><label>最低庫存</label><input id="minQty" type="number" min="0" value="0"></div></div>
 <div class="two"><div><label>進貨成本</label><input id="cost" type="number" min="0" step="0.01" placeholder="0"></div><div><label>售價</label><input id="price" type="number" min="0" step="0.01" placeholder="0"></div></div>
-<div class="two"><div><label>品牌／牌子</label><input id="brand" type="text" placeholder="例如：恐龍"></div><div><label>搜尋關鍵字（最多 3 個）</label><input id="keywords" type="text" placeholder="例如：恐龍、黃油"></div></div>
+<div class="two"><div><label>品牌／牌子</label><input id="brand" type="text" placeholder="例如：恐龍"></div><div><label>搜尋關鍵字（最多 3 個；用逗號分隔）</label><input id="keywords" type="text" placeholder="例如：恐龍,黃油"></div></div>
   <label>備註</label><textarea id="note" placeholder="例如：黑色、常用、客人常叫黑螺絲"></textarea>
 <label>商品照片</label><input id="photo" type="file" accept="image/*" capture="environment"><img id="preview" class="preview" style="display:none">
 <div class="form-actions"><button class="secondary" id="cancelProduct">取消</button><button class="primary" id="saveProduct">儲存商品</button></div>
@@ -336,10 +336,10 @@ function renderProducts(ps){
     ${filterPanelHTML()}
     <div class="addbar"><div class="hint">最相關結果／第 ${fmt(totalCount?page*PAGE_SIZE+1:0)}～${fmt(Math.min((page+1)*PAGE_SIZE,totalCount))} 筆，共 ${fmt(totalCount)} 筆</div><button class="primary" onclick="openProduct()">＋ 新增商品</button></div>
     <div class="list">${ps.length?ps.map(p=>{const st=Number(p.stock||0)===0?["缺貨","out"]:Number(p.stock||0)<=Number(p.min_stock||0)?["低庫存","low"]:["庫存正常","ok"];return `<div class="card product" data-product-id="${esc(p.id)}">
-      <div class="product-top"><div class="thumb">${p._photo?`<img src="${p._photo}">`:"📦"}</div><div class="info"><div class="name">${esc(p.name||"未命名商品")}</div>
-      ${p.sku?`<div class="sku">編號：${esc(p.sku)}</div>`:""}<div class="meta">${p.spec?`規格：${esc(p.spec)}<br>`:""}${p.brand?`🏷️ 品牌：${esc(p.brand)}<br>`:""}🏭 ${esc(vendorName(p.vendor_id))}${p.location?`　📍 ${esc(p.location)}`:""}<br>
+      <div class="product-top"><div class="thumb">${p._photo?`<img src="${p._photo}">`:"📦"}</div><div class="info"><div class="name">${esc(p.name||"未命名商品")}${p.brand?` <span class="badge" style="margin-left:7px">🏷️ ${esc(p.brand)}</span>`:""}</div>
+      ${p.sku?`<div class="sku">編號：${esc(p.sku)}</div>`:""}<div class="meta">${p.spec?`規格：${esc(p.spec)}<br>`:""}🏭 ${esc(vendorName(p.vendor_id))}${p.location?`　📍 ${esc(p.location)}`:""}<br>
       ${p.parent_category?`📂 ${esc(p.parent_category)}`:""}${p.child_category?`　└ ${esc(p.child_category)}`:""}${p.record_date?`<br>📅 ${esc(p.record_date)}`:""}</div>
-      <div class="badges"><span class="badge ${st[1]}">${st[0]}</span><span class="badge">庫存 ${fmt(p.stock)} ${esc(p.unit||"個")}</span>${p.min_stock?`<span class="badge">最低 ${fmt(p.min_stock)}</span>`:""}${p.keywords?`<span class="badge">🔑 ${esc(p.keywords)}</span>`:""}</div></div></div>
+      <div class="badges"><span class="badge ${st[1]}">${st[0]}</span><span class="badge">庫存 ${fmt(p.stock)} ${esc(p.unit||"個")}</span>${p.min_stock?`<span class="badge">最低 ${fmt(p.min_stock)}</span>`:""}</div>${keywordArray(p.keywords).length?`<div class="keyword-list">${keywordArray(p.keywords).map(k=>`<span class="badge">🔑 ${esc(k)}</span>`).join("")}</div>`:""}</div></div>
       <div class="actions"><button onclick="openMovement('${p.id}','入庫')">📥 入庫</button><button onclick="openMovement('${p.id}','出庫')">📤 出庫</button><button onclick="openProduct('${p.id}')">✏️ 編輯</button><button onclick="showProductHistory('${p.id}')">📋 紀錄</button><button class="danger" onclick="removeProduct('${p.id}')">刪除</button></div>
     </div>`}).join(""):`<div class="card empty">目前沒有商品，或沒有符合搜尋條件的商品。</div>`}</div>
     <div class="pager"><button class="secondary" onclick="prevPage()" ${page===0?"disabled":""}>上一頁</button><span class="hint">第 ${page+1} / ${Math.max(1,Math.ceil(totalCount/PAGE_SIZE))} 頁</span><button class="secondary" onclick="nextPage()" ${(page+1)*PAGE_SIZE>=totalCount?"disabled":""}>下一頁</button></div>`;
@@ -570,9 +570,8 @@ async function ensureLocationId(name){
   if(!l){const r=await sb.from("locations").insert({name:n,parent_id:null,user_id:session.user.id}).select("id,name,parent_id").single();if(r.error)throw r.error;l=r.data;locationCache.push(l);}return {location_id:l.id};
 }
 
-function normalizeKeywords(value){return [...new Set(String(value||"").split(/[，,、\n]+/).map(x=>x.trim()).filter(Boolean))].slice(0,3).join("、");}
-function inferBrandAndKeywords(name){const text=String(name||"").trim();if(!text)return {brand:"",keywords:""};const parts=text.split(/\s+/).filter(Boolean);if(parts.length>=2)return {brand:parts[0],keywords:normalizeKeywords(parts.slice(0,3).join("、"))};if(text.length>=4)return {brand:text.slice(0,2),keywords:normalizeKeywords(text.slice(0,4))};return {brand:text,keywords:text};}
-
+function normalizeKeywords(value){return [...new Set(String(value||"").split(/[，,、\n]+/).map(x=>x.trim()).filter(Boolean))].slice(0,3).join(",");}
+function keywordArray(value){return String(value||"").split(/[，,、\n]+/).map(x=>x.trim()).filter(Boolean).slice(0,3);}
 async function uploadPhoto(file,productId){
   const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";const path=`${session.user.id}/products/${productId}-${Date.now()}.${ext}`;
   const {error}=await sb.storage.from(CONFIG.bucket).upload(path,file,{contentType:file.type||"image/jpeg",upsert:false});if(error)throw error;return path;
@@ -1269,16 +1268,17 @@ async function openPurchaseReview(documentId){
     const meta=(raw.items||[])[idx]||{},candidates=Array.isArray(meta.candidates)?meta.candidates:[],chosen=it.product_id||meta.suggested_product_id||'';
     const pOpts=`<option value="">＋ 建立新商品</option>`+candidates.map(c=>`<option value="${c.id}" ${c.id===chosen?'selected':''}>${esc(c.name||'')}${c.spec?'｜'+esc(c.spec):''}</option>`).join('');
     const parent=meta.suggested_parent_category||'',child=meta.suggested_child_category||'',loc=meta.suggested_location||'',price=it.unit_price==null?'':it.unit_price;
+    const displayName=String(it.raw_name||'').trim()||'(不明)',displaySpec=String(it.raw_spec||'').trim()||'(不明)';
     setReviewItemState(it.id,{removed:false,confirmed:d.status==='已確認'});const state=getReviewItemState(it.id);
     return `<div class="card section purchase-item ${state.confirmed?'review-item-confirmed':''}" data-item-id="${it.id}">
       <div class="row"><strong>第 ${idx+1} 筆</strong><span class="badge review-status ${state.confirmed?'ok':'low'}">${state.confirmed?'✅ 已確認':(it.match_status||'待確認')}${it.match_confidence!=null?` ${Math.round(Number(it.match_confidence)*100)}%`:''}</span></div>
-      <div class="two"><div><label>原貨單品名</label><input class="ri-name" value="${esc(it.raw_name||'')}"></div><div><label>規格</label><input class="ri-spec" value="${esc(it.raw_spec||'')}"></div></div>
-      <div class="two"><div><label>對應商品</label><select class="ri-product">${pOpts}</select></div><div><label>數量</label><input class="ri-qty" type="number" min="0" step="1" value="${Number(it.quantity||0)}"></div></div>
-      <div class="two"><div><label>進貨單位</label><input class="ri-purchase-unit" value="${esc(it.unit||meta.purchase_unit||'個')}"></div><div><label>銷售單位</label><input class="ri-sale-unit" value="${esc(meta.suggested_sale_unit||meta.sale_unit||'個')}"></div></div>
-      <div class="two"><div><label>品牌／牌子</label><input class="ri-brand" value="${esc(meta.suggested_brand||meta.brand||meta.brand_name||productInfo[it.product_id]?.brand||inferBrandAndKeywords(it.raw_name).brand)}" placeholder="例如：恐龍"></div><div><label>搜尋關鍵字（1～3 個）</label><input class="ri-keywords" value="${esc(Array.isArray(meta.keywords)?meta.keywords.join('、'):meta.keywords||productInfo[it.product_id]?.keywords||inferBrandAndKeywords(it.raw_name).keywords)}" placeholder="例如：恐龍、黃油"></div></div>
-      <div class="two"><div><label>進貨成本</label><input class="ri-cost" type="number" min="0" step="0.01" value="${esc(price)}"></div><div><label>售價</label><input class="ri-price" type="number" min="0" step="0.01" value="${esc(meta.suggested_price??'')}" placeholder="可之後再填"></div></div>
-      <div class="two"><div><label>母項目</label><input class="ri-parent" list="reviewParentOptions" value="${esc(parent)}" placeholder="例如：農業用品"></div><div><label>子項目</label><input class="ri-child" list="reviewChildOptions" value="${esc(child)}" placeholder="例如：抑制蓆"></div></div>
-      <div><label>所在位置</label><input class="ri-location" list="reviewLocationOptions" value="${esc(loc)}" placeholder="例如：A01-03"></div>
+      <div class="two"><div><label>商品名稱</label><input class="ri-name" value="${esc(displayName)}" placeholder="掃描不到時顯示（不明）"></div><div><label>品牌／牌子</label><input class="ri-brand" value="${esc(meta.suggested_brand||meta.brand||meta.brand_name||productInfo[it.product_id]?.brand||'')}" placeholder="例如：恐龍"></div></div>
+      <div class="two"><div><label>規格</label><input class="ri-spec" value="${esc(displaySpec)}" placeholder="掃描不到時顯示（不明）"></div><div><label>對應商品</label><select class="ri-product">${pOpts}</select></div></div>
+      <div class="two"><div><label>數量</label><input class="ri-qty" type="number" min="0" step="1" value="${Number(it.quantity||0)}"></div><div><label>進貨單位</label><input class="ri-purchase-unit" value="${esc(it.unit||meta.purchase_unit||'個')}"></div></div>
+      <div class="two"><div><label>銷售單位</label><input class="ri-sale-unit" value="${esc(meta.suggested_sale_unit||meta.sale_unit||'個')}"></div><div><label>進貨成本</label><input class="ri-cost" type="number" min="0" step="0.01" value="${esc(price)}"></div></div>
+      <div class="two"><div><label>售價</label><input class="ri-price" type="number" min="0" step="0.01" value="${esc(meta.suggested_price??'')}" placeholder="可之後再填"></div><div><label>母項目</label><input class="ri-parent" list="reviewParentOptions" value="${esc(parent)}" placeholder="例如：農業用品"></div></div>
+      <div class="two"><div><label>子項目</label><input class="ri-child" list="reviewChildOptions" value="${esc(child)}" placeholder="例如：抑制蓆"></div><div><label>所在位置</label><input class="ri-location" list="reviewLocationOptions" value="${esc(loc)}" placeholder="例如：A01-03"></div></div>
+      <div><label>搜尋關鍵字（最後欄，最多 3 個；用逗號分隔）</label><input class="ri-keywords" value="${esc(Array.isArray(meta.keywords)?meta.keywords.join(','):meta.keywords||productInfo[it.product_id]?.keywords||'')}" placeholder="例如：恐龍,黃油"></div>
       <div class="small" style="margin-top:8px">${esc(chosen?'AI 建議已找到相近商品，請確認。':'AI 建議：目前沒有足夠接近的既有商品，可確認後建立新商品。')} ${esc(meta.category_reason||'')}</div>
       <div class="review-actions"><button type="button" class="secondary" data-review-confirm="${it.id}">✅ 確認此筆</button><button type="button" class="danger" data-review-remove="${it.id}">🗑 刪除此筆</button></div>
     </div>`;
