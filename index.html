@@ -22,7 +22,7 @@ header{background:linear-gradient(135deg,#352a23,#5a4638);color:#fff;padding:17p
 .title{font-size:23px;font-weight:850}.subtitle{font-size:12px;color:#eaded3;margin-top:3px}.account{font-size:12px;color:#eaded3;margin-top:5px}.search{width:100%;margin-top:13px;border:0;border-radius:15px;padding:13px 15px;background:#fff;color:#111;outline:none;box-shadow:0 5px 18px rgba(66,48,35,.12)}
 main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}.quick button{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:10px 7px;color:#574b42;font-weight:750}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:13px}.card{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);border:1px solid rgba(231,221,209,.75)}.stat{padding:14px}.stat .label{color:var(--muted);font-size:12px}.stat strong{display:block;font-size:27px;margin:3px 0}.stat small{color:var(--muted)}
-.tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:12px}.tabs button{border:0;border-radius:12px;background:#fff;padding:10px 5px;font-weight:800;color:#6e6258}.tabs button.active{background:var(--accent);color:#fff}
+.tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:12px}.tabs button{border:0;border-radius:12px;background:#fff;padding:10px 5px;font-weight:800;color:#6e6258}.tabs button.active{background:var(--accent);color:#fff;box-shadow:0 3px 10px rgba(199,120,42,.25);transform:translateY(-1px)}
 .toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 11px;color:#62564d;font-size:13px}
 .addbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.hint{font-size:13px;color:var(--muted)}.list{display:grid;gap:10px}
 .product{padding:14px}.product-top{display:flex;gap:12px;align-items:flex-start}.thumb{width:68px;height:68px;flex:none;border-radius:13px;background:#f2ece4;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#a89a8c;font-size:25px}.thumb img{width:100%;height:100%;object-fit:cover}
@@ -636,15 +636,17 @@ $("documentPhoto").onchange=e=>{const f=e.target.files[0];if(!f)return;$("docPre
 $("cancelDocument").onclick=()=>$("documentDialog").close();
 $("createDocument").onclick=async()=>{const f=$("documentPhoto").files[0];if(!f)return alert("請先選擇貨單照片");const id=crypto.randomUUID(),ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg",path=`${session.user.id}/documents/${id}.${ext}`;const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg"});if(up.error)return alert("貨單照片上傳失敗："+up.error.message);const ins=await sb.from("purchase_documents").insert({id,status:"待辨識",document_date:today,image_path:path});if(ins.error)return alert("建立貨單失敗："+ins.error.message);$("documentDialog").close();await render();alert("貨單已儲存。目前先完成貨單雲端保存；貨單 AI 辨識可再接後端功能。")};
 
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;page=0;render()});
-$("search").oninput=()=>{page=0;searchMode="normal";smartQuery="";smartFilters=null;if($("smartSummary")){$("smartSummary").classList.add("hidden");$("smartSummary").textContent="";}if(currentTab!=="products")currentTab="products";updateSearchHint();loadProducts().catch(e=>setAppMessage(e.message))};
+function updateTabButtons(){document.querySelectorAll(".tabs button").forEach(b=>{b.classList.toggle("active",b.dataset.tab===currentTab);});}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;page=0;updateTabButtons();render()});
+updateTabButtons();
+$("search").oninput=()=>{page=0;searchMode="normal";smartQuery="";smartFilters=null;if($("smartSummary")){$("smartSummary").classList.add("hidden");$("smartSummary").textContent="";}if(currentTab!=="products"){currentTab="products";updateTabButtons();}updateSearchHint();loadProducts().catch(e=>setAppMessage(e.message))};
 $("search").addEventListener("change",()=>saveRecentSearch($("search").value));
 
 $("addBtn").onclick=()=>currentTab==="vendors"?openVendor():openProduct();
 
 async function render(first=false){
   try{
-    if(!session)return;showApp();
+    if(!session)return;showApp();updateTabButtons();
     if(first)$("app").innerHTML=`<div class="card empty">正在連線雲端資料庫…</div>`;
     await loadMeta();await loadStats();
     if(currentTab==="products")await loadProducts();
