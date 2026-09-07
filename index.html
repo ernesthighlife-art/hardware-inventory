@@ -22,12 +22,12 @@ header{background:linear-gradient(135deg,#352a23,#5a4638);color:#fff;padding:17p
 .title{font-size:23px;font-weight:850}.subtitle{font-size:12px;color:#eaded3;margin-top:3px}.account{font-size:12px;color:#eaded3;margin-top:5px}.search{width:100%;margin-top:13px;border:0;border-radius:15px;padding:13px 15px;background:#fff;color:#111;outline:none;box-shadow:0 5px 18px rgba(66,48,35,.12)}
 main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}.quick button{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:10px 7px;color:#574b42;font-weight:750}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:13px}.card{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);border:1px solid rgba(231,221,209,.75)}.stat{padding:14px}.stat .label{color:var(--muted);font-size:12px}.stat strong{display:block;font-size:27px;margin:3px 0}.stat small{color:var(--muted)}
-.tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:12px}.tabs button{border:0;border-radius:12px;background:#fff;padding:10px 5px;font-weight:800;color:#6e6258}.tabs button.active{background:var(--accent);color:#fff;box-shadow:0 3px 10px rgba(199,120,42,.25);transform:translateY(-1px)}
+.tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:12px}.tabs button{border:0;border-radius:12px;background:#fff;padding:10px 5px;font-weight:800;color:#6e6258}.tabs button.active{background:var(--accent);color:#fff}
 .toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 11px;color:#62564d;font-size:13px}
 .addbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.hint{font-size:13px;color:var(--muted)}.list{display:grid;gap:10px}
 .product{padding:14px}.product-top{display:flex;gap:12px;align-items:flex-start}.thumb{width:68px;height:68px;flex:none;border-radius:13px;background:#f2ece4;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#a89a8c;font-size:25px}.thumb img{width:100%;height:100%;object-fit:cover}
 .info{min-width:0;flex:1}.name{font-weight:850;font-size:16px;line-height:1.35}.sku{font-size:12px;color:var(--muted);margin-top:2px}.meta{font-size:13px;color:#6b5f55;line-height:1.62;margin-top:6px}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.badge{font-size:12px;padding:4px 8px;border-radius:999px;background:#f3eee8;color:#5f554c}.badge.ok{background:var(--successBg);color:var(--success)}.badge.low{background:var(--warnBg);color:var(--warn)}.badge.out{background:var(--dangerBg);color:var(--danger)}
-.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.actions button{border:1px solid var(--line);background:#fbf8f3;border-radius:10px;padding:8px 10px;font-size:13px}.review-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.review-actions button{min-width:118px}.review-item-confirmed{border:2px solid var(--success)!important}.review-item-removed{display:none!important}.review-actions .is-confirmed{background:#d9f7e5!important;color:#167a45!important;border-color:#8bd7aa!important}.review-actions .is-removed{background:#f1f1f1!important;color:#777!important;border-color:#d5d5d5!important;text-decoration:line-through}.review-status{font-weight:800}.review-note{font-size:12px;color:var(--muted);margin-top:6px}.danger{background:var(--dangerBg)!important;color:var(--danger)!important;border-color:#ffd4cf!important}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.actions button{border:1px solid var(--line);background:#fbf8f3;border-radius:10px;padding:8px 10px;font-size:13px}.danger{background:var(--dangerBg)!important;color:var(--danger)!important;border-color:#ffd4cf!important}
 .section{padding:16px;margin-bottom:12px}.section h3{margin:0 0 10px}.rows{display:grid}.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}
 .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:13px}.table{width:100%;border-collapse:collapse;min-width:850px}.table th,.table td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:13px}.table th{background:#fbf7f1;color:#695d53}.table td.num{text-align:right}
 .empty{text-align:center;color:var(--muted);padding:45px 12px}.pager{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px}.notice{background:var(--accentBg);color:#7a4a19;border-radius:13px;padding:11px 13px;font-size:13px;line-height:1.55;margin-bottom:12px}
@@ -65,7 +65,7 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 .offline-tools button{border:1px solid #ffffff33;background:#ffffff10;color:#fff;border-radius:10px;padding:6px 10px;font-size:12px;font-weight:750}
 .offline-note{background:#f4eadf;color:#6e4b2f;border:1px solid #e7d5c2;border-radius:12px;padding:9px 11px;font-size:12px;line-height:1.55;margin-bottom:10px}
 .sync-progress{font-size:12px;color:var(--muted);margin-top:6px}
-.inline-actions{display:flex;gap:6px;align-items:center}.inline-actions select,.inline-actions input{flex:1;min-width:0}.mini{padding:9px 10px;font-size:13px;white-space:nowrap}</style>
+</style>
 </head>
 <body>
 
@@ -95,6 +95,7 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
     <div id="searchHint" class="search-hint">可以直接說：「白鐵 M6 螺絲」、「XX五金的螺絲」</div><div id="smartSummary" class="smart-summary hidden"></div><div class="offline-tools"><span id="networkStatus" class="network-pill">準備中…</span><span id="syncStatus" class="network-pill hidden"></span><button id="syncBtn" type="button">☁️ 同步</button><button id="downloadOfflineBtn" type="button">⬇️ 下載離線資料</button></div></div></header>
 <main>
   <div id="offlineNote" class="offline-note hidden"></div>
+  <div class="quick"><button onclick="setTab('products')">📦 商品</button><button onclick="setTab('vendors')">🏭 廠商</button><button onclick="setTab('categories')">📂 分類</button><button onclick="setTab('locations')">📍 位置</button><button onclick="setTab('documents')">📷 貨單</button></div>
   <div class="grid">
     <div class="card stat"><span class="label">商品種類</span><strong id="statProducts">0</strong><small>雲端商品</small></div>
     <div class="card stat"><span class="label">庫存總數</span><strong id="statQty">0</strong><small>目前可見資料</small></div>
@@ -112,9 +113,9 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 <h2 id="productDialogTitle">新增商品</h2><div class="notice">商品資料會儲存在雲端。照片會放在私有的 inventory-photos。已建立商品請使用「入庫／出庫」調整庫存。</div>
 <div class="two"><div><label>商品名稱</label><input id="name" type="text" placeholder="例如：十字螺絲"></div><div><label>商品編號</label><input id="sku" type="text" placeholder="例如：SL-M6-030-001"></div></div>
 <div class="two"><div><label>規格</label><input id="spec" type="text" placeholder="例如：M6 × 30mm、白鐵"></div><div><label>條碼</label><input id="barcode" type="text" placeholder="可手動輸入"></div></div>
-<div class="two"><div><label>廠商</label><div class="inline-actions"><select id="vendor"></select><button type="button" class="secondary mini" id="quickAddVendor">＋廠商</button></div></div><div><label>單位名稱</label><input id="unit" type="text" placeholder="例如：個、盒、包、箱"></div></div>
-<div class="two"><div><label>母項目</label><div class="inline-actions"><input id="parentCategory" list="parentCategoryOptions" type="text" placeholder="例如：螺絲類"><button type="button" class="secondary mini" id="quickAddCategory">＋分類</button></div><datalist id="parentCategoryOptions"></datalist></div><div><label>子項目</label><input id="childCategory" list="childCategoryOptions" type="text" placeholder="例如：十字螺絲"><datalist id="childCategoryOptions"></datalist></div></div>
-<div class="two"><div><label>所在位置</label><div class="inline-actions"><input id="location" list="locationOptions" type="text" placeholder="例如：A01-03"><button type="button" class="secondary mini" id="quickAddLocation">＋位置</button></div><datalist id="locationOptions"></datalist></div><div><label>日期</label><input id="date" type="date"></div></div>
+<div class="two"><div><label>廠商</label><select id="vendor"></select></div><div><label>單位名稱</label><input id="unit" type="text" placeholder="例如：個、盒、包、箱"></div></div>
+<div class="two"><div><label>母項目</label><input id="parentCategory" type="text" placeholder="例如：螺絲類"></div><div><label>子項目</label><input id="childCategory" type="text" placeholder="例如：十字螺絲"></div></div>
+<div class="two"><div><label>所在位置</label><input id="location" type="text" placeholder="例如：A01-03"></div><div><label>日期</label><input id="date" type="date"></div></div>
 <div class="two"><div><label>目前數量</label><input id="qty" type="number" min="0" value="0"></div><div><label>最低庫存</label><input id="minQty" type="number" min="0" value="0"></div></div>
 <div class="two"><div><label>進貨成本</label><input id="cost" type="number" min="0" step="0.01" placeholder="0"></div><div><label>售價</label><input id="price" type="number" min="0" step="0.01" placeholder="0"></div></div>
 <label>備註／搜尋關鍵字</label><textarea id="note" placeholder="例如：黑色、常用、客人常叫黑螺絲"></textarea>
@@ -128,23 +129,14 @@ main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;gr
 
 <dialog id="movementDialog" class="dialog"><div class="form"><h2 id="movementTitle">庫存異動</h2><div id="movementProduct" class="notice"></div><div class="small" style="margin-top:6px">這次操作會同時更新庫存並建立異動紀錄。</div><label>數量</label><input id="movementQty" type="number" min="1" value="1"><label>原因</label><input id="movementReason" type="text" placeholder="例如：進貨、銷售、損耗、調整"><div class="form-actions"><button class="secondary" id="cancelMovement">取消</button><button class="primary" id="saveMovement">確認</button></div></div></dialog>
 
-<dialog id="documentDialog" class="dialog"><div class="form"><h2>📷 貨單／AI 整理</h2><div class="scan-box"><div style="font-size:38px">📷</div><h3>拍攝或選擇貨單</h3><div class="small">照片會先儲存在私有空間。真正 AI 辨識會在後端完成。</div><input id="documentPhoto" type="file" accept="image/*" capture="environment" style="margin-top:14px"></div><div id="docPreview"></div><div class="form-actions"><button class="secondary" id="cancelDocument">關閉</button><button class="primary" id="createDocument">🧠 開始 AI 辨識</button></div></div></dialog>
-<dialog id="purchaseReviewDialog" class="dialog"><div class="form" style="max-width:1100px">
-<h2>🧾 AI 貨單辨識確認</h2>
-<div id="purchaseReviewHeader" class="notice">正在載入貨單資料…</div>
-<div id="purchaseReviewVendor" class="two" style="margin-top:12px"></div>
-<div id="purchaseReviewItems" style="margin-top:12px"></div>
-<div class="form-actions"><button class="secondary" id="cancelPurchaseReview">關閉</button><button class="primary" id="confirmPurchaseReview">✅ 確認商品並入庫</button></div>
-</div></dialog>
-
+<dialog id="documentDialog" class="dialog"><div class="form"><h2>📷 貨單／AI 整理</h2><div class="scan-box"><div style="font-size:38px">📷</div><h3>拍攝或選擇貨單</h3><div class="small">照片會先儲存在私有空間。真正 AI 辨識會在後端完成。</div><input id="documentPhoto" type="file" accept="image/*" capture="environment" style="margin-top:14px"></div><div id="docPreview"></div><div class="form-actions"><button class="secondary" id="cancelDocument">關閉</button><button class="primary" id="createDocument">建立待辨識貨單</button></div></div></dialog>
 
 <script>
 const CONFIG={
   url:"https://mmmimwkgcsbgsbuiwnrs.supabase.co",
   key:"sb_publishable_7OoeJaMuSuNdZsP3KHpEEw_n8mpVdpf",
   bucket:"inventory-photos",
-  smartSearchFunction:"smart-search",
-  purchaseAIFunction:"process-purchase-document"
+  smartSearchFunction:"smart-search"
 };
 
 let sb=null, session=null, currentTab="products", editingId=null, pendingPhoto=null, movementId=null, movementType="入庫";
@@ -333,7 +325,7 @@ function renderProducts(ps){
     <div class="toolbar"><button class="chip" onclick="setQuickStockFilter('low')">⚠️ 低庫存</button><button class="chip" onclick="setQuickStockFilter('out')">❌ 缺貨</button><button class="chip" onclick="filterProducts('photo')">📷 有照片</button><button class="chip" onclick="clearSearch()">清除搜尋</button>${searchMode==="smart"&&smartQuery?`<button class="chip" onclick="clearSmartSearch()">🧠 清除智慧搜尋</button>`:""}</div>
     ${filterPanelHTML()}
     <div class="addbar"><div class="hint">最相關結果／第 ${fmt(totalCount?page*PAGE_SIZE+1:0)}～${fmt(Math.min((page+1)*PAGE_SIZE,totalCount))} 筆，共 ${fmt(totalCount)} 筆</div><button class="primary" onclick="openProduct()">＋ 新增商品</button></div>
-    <div class="list">${ps.length?ps.map(p=>{const st=Number(p.stock||0)===0?["缺貨","out"]:Number(p.stock||0)<=Number(p.min_stock||0)?["低庫存","low"]:["庫存正常","ok"];return `<div class="card product">
+    <div class="list">${ps.length?ps.map(p=>{const st=Number(p.stock||0)===0?["缺貨","out"]:Number(p.stock||0)<=Number(p.min_stock||0)?["低庫存","low"]:["庫存正常","ok"];return `<div class="card product" data-product-id="${esc(p.id)}">
       <div class="product-top"><div class="thumb">${p._photo?`<img src="${p._photo}">`:"📦"}</div><div class="info"><div class="name">${esc(p.name||"未命名商品")}</div>
       ${p.sku?`<div class="sku">編號：${esc(p.sku)}</div>`:""}<div class="meta">${p.spec?`規格：${esc(p.spec)}<br>`:""}🏭 ${esc(vendorName(p.vendor_id))}${p.location?`　📍 ${esc(p.location)}`:""}<br>
       ${p.parent_category?`📂 ${esc(p.parent_category)}`:""}${p.child_category?`　└ ${esc(p.child_category)}`:""}${p.record_date?`<br>📅 ${esc(p.record_date)}`:""}</div>
@@ -345,7 +337,7 @@ function renderProducts(ps){
   syncFilterUI();
 }
 function filterProducts(type){let ps=productCache;if(type==="low")ps=ps.filter(p=>Number(p.stock||0)<=Number(p.min_stock||0));if(type==="out")ps=ps.filter(p=>Number(p.stock||0)===0);if(type==="photo")ps=ps.filter(p=>!!p.photo_path);renderProducts(ps)}
-function clearSmartSearch(){searchMode="normal";smartQuery="";smartFilters=null;productFilters.vendor="";if($("smartSummary")){$("smartSummary").classList.add("hidden");$("smartSummary").textContent="";}page=0;loadProducts()}
+function clearSmartSearch(){searchMode="normal";smartQuery="";smartFilters=null;if($("smartSummary")){$("smartSummary").classList.add("hidden");$("smartSummary").textContent="";}page=0;loadProducts()}
 function clearSearch(){$("search").value="";clearSmartSearch();clearProductFilters()}
 function prevPage(){if(page>0){page--;loadProducts()}}function nextPage(){if((page+1)*PAGE_SIZE<totalCount){page++;loadProducts()}}
 
@@ -424,114 +416,21 @@ function updateSearchHint(){
 
 function setTab(t){currentTab=t;page=0;render()}
 async function renderVendors(){
-  if(appOnline){
-    const r=await sb.from("vendors").select("id,name,phone,address,contact_name,note,user_id").order("name");
-    if(r.error)throw new Error("讀取廠商資料失敗："+r.error.message);
-    vendorCache=Array.isArray(r.data)?r.data:[];
-    // 以雲端最新清單覆蓋本機快取：刪掉的廠商不再殘留。
-    const old=await idbGetAll("vendors").catch(()=>[]), ids=new Set(vendorCache.map(v=>v.id));
-    for(const v of old){if(v?.id&&!ids.has(v.id))await idbDelete("vendors",v.id).catch(()=>{});}
-    await cacheRows("vendors",vendorCache);
-  }else{
-    await loadLocalMeta();
-  }
-  const rows=vendorCache.slice();
-  $("app").innerHTML=`<div class="addbar"><div class="hint">${fmt(rows.length)} 家廠商</div><button class="primary" onclick="openVendor()">＋ 新增廠商</button></div><div class="list">
-  ${rows.map(v=>`<div class="card section" data-vendor-card="${esc(v.id)}"><div class="row"><div><h3>🏭 ${esc(v.name)}</h3><div class="meta">${esc(v.phone||"未填電話")}</div></div><div class="actions"><button class="secondary" onclick="searchVendor('${v.id}')">查看商品</button><button class="danger" onclick="removeVendor('${v.id}')">刪除</button></div></div></div>`).join("")||`<div class="card empty">尚未建立廠商</div>`}</div>`;
+  $("app").innerHTML=`<div class="addbar"><div class="hint">${fmt(vendorCache.length)} 家廠商</div><button class="primary" onclick="openVendor()">＋ 新增廠商</button></div><div class="list">
+  ${vendorCache.map(v=>`<div class="card section"><div class="row"><div><h3>🏭 ${esc(v.name)}</h3><div class="meta">${esc(v.phone||"未填電話")}</div></div><button class="secondary" onclick="searchVendor('${v.id}')">查看商品</button></div></div>`).join("")||`<div class="card empty">尚未建立廠商</div>`}</div>`;
 }
-function searchVendor(id){
-  $("search").value=""; smartQuery=""; smartFilters=null; searchMode="normal";
-  if($("smartSummary")){ $("smartSummary").classList.add("hidden"); $("smartSummary").textContent=""; }
-  productFilters.vendor=id; currentTab="products"; page=0; render().catch(e=>setAppMessage(e.message));
-}
-function categoryDescendantIds(rootId){
-  const ids=[rootId];let changed=true;
-  while(changed){changed=false;for(const c of categoryCache){if(c.parent_id&&ids.includes(c.parent_id)&&!ids.includes(c.id)){ids.push(c.id);changed=true;}}}
-  return ids;
-}
-function locationDescendantIds(rootId){
-  const ids=[rootId];let changed=true;
-  while(changed){changed=false;for(const c of locationCache){if(c.parent_id&&ids.includes(c.parent_id)&&!ids.includes(c.id)){ids.push(c.id);changed=true;}}}
-  return ids;
-}
-async function removeVendor(id){
-  const v=vendorCache.find(x=>x.id===id);if(!v)return;
-  if(!confirm(`確定刪除廠商「${v.name}」？\n只解除這一家廠商與商品的關聯，不會刪除商品。`))return;
-  try{
-    if(!appOnline){
-      const localProducts=await idbGetAll("products").catch(()=>[]);
-      for(const p of localProducts.filter(p=>p.vendor_id===id)){p.vendor_id=null;await cacheProduct(p);}
-      await idbDelete("vendors",id);
-      await enqueue("vendor_delete",{id});
-    }else{
-      const prod=await sb.from("products").update({vendor_id:null}).eq("vendor_id",id).eq("user_id",session.user.id);
-      if(prod.error)throw prod.error;
-      const del=await sb.from("vendors").delete().eq("id",id).eq("user_id",session.user.id).select("id");
-      if(del.error)throw del.error;
-      if(!del.data?.length)throw new Error("廠商沒有成功刪除，請檢查 DELETE 權限。");
-      const stale=await idbGetAll("products").catch(()=>[]);
-      for(const p of stale.filter(p=>p.vendor_id===id)){p.vendor_id=null;await cacheProduct(p);}
-      await idbDelete("vendors",id).catch(()=>{});
-    }
-    productFilters.vendor="";
-    // 刪除後重新從雲端抓一次，確保列表真的消失；不靠舊快取。
-    if(appOnline){
-      const fresh=await sb.from("vendors").select("id,name,phone,address,contact_name,note,user_id,created_at,updated_at").order("name").limit(1000);
-      if(fresh.error)throw fresh.error;
-      vendorCache=fresh.data||[];
-      await cacheRows("vendors",vendorCache);
-    }else{
-      await loadLocalMeta();
-    }
-    await renderVendors();
-    await loadStats();
-    if(currentTab==="products")await loadProducts();
-  }catch(e){
-    alert("刪除廠商失敗："+(e.message||String(e)));
-    await renderVendors().catch(()=>{});
-  }
-}
+function searchVendor(id){const v=vendorCache.find(x=>x.id===id);$("search").value=v?.name||"";currentTab="products";page=0;loadProducts()}
+
 function renderCategories(){
-  const top=categoryCache.filter(c=>!c.parent_id),children={};categoryCache.forEach(c=>(children[c.parent_id]??=[]).push(c));
-  $('app').innerHTML=`<div class="addbar"><div class="hint">${fmt(categoryCache.length)} 個分類</div><button class="primary" onclick="addCategoryPrompt()">＋ 新增分類</button></div><div class="notice">分類可以做成「母項目 → 子項目」。</div><div class="card section"><h3>📂 分類</h3><div class="rows">${top.map(p=>`<div class="row"><span><strong>${esc(p.name)}</strong>　<span class="muted">${(children[p.id]||[]).length} 個子項目</span></span><span class="actions"><button class="danger" onclick="removeCategory('${p.id}')">刪除</button></span></div>${(children[p.id]||[]).map(c=>`<div class="row"><span>└ ${esc(c.name)}</span><span class="actions"><span class="muted">子項目</span><button class="danger" onclick="removeCategory('${c.id}')">刪除</button></span></div>`).join('')}`).join('')||`<div class="empty">尚未建立分類</div>`}</div></div>`;
+  const top=categoryCache.filter(c=>!c.parent_id),children={};categoryCache.forEach(c=>{(children[c.parent_id]??=[]).push(c)});
+  $("app").innerHTML=`<div class="notice">分類可以做成「母項目 → 子項目」，未來也能增加更多層。</div><div class="card section"><h3>📂 分類</h3><div class="rows">
+  ${top.map(p=>`<div class="row"><span><strong>${esc(p.name)}</strong></span><span>${(children[p.id]||[]).length} 個子項目</span></div>${(children[p.id]||[]).map(c=>`<div class="row"><span>└ ${esc(c.name)}</span><span class="muted">子項目</span></div>`).join("")}`).join("")||`<div class="empty">尚未建立分類</div>`}</div></div>`;
 }
 function renderLocations(){
-  const top=locationCache.filter(c=>!c.parent_id),children={};locationCache.forEach(c=>(children[c.parent_id]??=[]).push(c));
-  $('app').innerHTML=`<div class="addbar"><div class="hint">${fmt(locationCache.length)} 個位置</div><button class="primary" onclick="addLocationPrompt()">＋ 新增位置</button></div><div class="notice">位置可以做成「倉庫 → 區域 → 貨架 → 層 → 格」。</div><div class="card section"><h3>📍 位置</h3><div class="rows">${top.map(p=>`<div class="row"><span><strong>${esc(p.name)}</strong>　<span class="muted">${(children[p.id]||[]).length} 個子位置</span></span><span class="actions"><button class="danger" onclick="removeLocation('${p.id}')">刪除</button></span></div>${(children[p.id]||[]).map(c=>`<div class="row"><span>└ ${esc(c.name)}</span><span class="actions"><span class="muted">子位置</span><button class="danger" onclick="removeLocation('${c.id}')">刪除</button></span></div>`).join('')}`).join('')||`<div class="empty">尚未建立位置</div>`}</div></div>`;
+  const top=locationCache.filter(c=>!c.parent_id),children={};locationCache.forEach(c=>{(children[c.parent_id]??=[]).push(c)});
+  $("app").innerHTML=`<div class="notice">位置可以做成「倉庫 → 區域 → 貨架 → 層 → 格」。</div><div class="card section"><h3>📍 位置</h3><div class="rows">
+  ${top.map(p=>`<div class="row"><span><strong>${esc(p.name)}</strong></span><span>${(children[p.id]||[]).length} 個子位置</span></div>${(children[p.id]||[]).map(c=>`<div class="row"><span>└ ${esc(c.name)}</span><span class="muted">子位置</span></div>`).join("")}`).join("")||`<div class="empty">尚未建立位置</div>`}</div></div>`;
 }
-async function removeCategory(id){
-  const c=categoryCache.find(x=>x.id===id);if(!c)return;const ids=categoryDescendantIds(id);
-  if(!confirm(`確定刪除分類「${c.name}」？\n${ids.length>1?'此分類底下的子分類也會一起刪除。':''}\n商品不會刪除。`))return;
-  try{
-    if(!appOnline){const products=await idbGetAll('products').catch(()=>[]);for(const p of products){if(ids.includes(p.category_id)){p.category_id=null;await cacheProduct(p);}}for(const cid of [...ids].reverse())await idbDelete('categories',cid);await enqueue('category_delete',{ids});await loadLocalMeta();await render(true);return;}
-    let r=await sb.from('products').update({category_id:null}).in('category_id',ids);if(r.error)throw r.error;
-    for(const cid of [...ids].reverse()){r=await sb.from('categories').delete().eq('id',cid);if(r.error)throw r.error;}
-    await loadMeta();await render();
-  }catch(e){alert('刪除分類失敗：'+(e.message||String(e)))}
-}
-async function removeLocation(id){
-  const l=locationCache.find(x=>x.id===id);if(!l)return;const ids=locationDescendantIds(id);
-  if(!confirm(`確定刪除位置「${l.name}」？\n${ids.length>1?'此位置底下的子位置也會一起刪除。':''}\n商品不會刪除。`))return;
-  try{
-    if(!appOnline){const products=await idbGetAll('products').catch(()=>[]);for(const p of products){if(ids.includes(p.location_id)){p.location_id=null;await cacheProduct(p);}}for(const lid of [...ids].reverse())await idbDelete('locations',lid);await enqueue('location_delete',{ids});await loadLocalMeta();await render(true);return;}
-    let r=await sb.from('products').update({location_id:null}).in('location_id',ids);if(r.error)throw r.error;
-    for(const lid of [...ids].reverse()){r=await sb.from('locations').delete().eq('id',lid);if(r.error)throw r.error;}
-    await loadMeta();await render();
-  }catch(e){alert('刪除位置失敗：'+(e.message||String(e)))}
-}
-async function addCategoryPrompt(){
-  if(!appOnline)return alert("新增分類目前需要網路。");
-  const parent=(prompt("母項目名稱（可留空）：")||"").trim();const name=(prompt("分類名稱：")||"").trim();if(!name)return;
-  try{let parentId=null;if(parent){let po=categoryCache.find(c=>!c.parent_id&&c.name===parent);if(!po){const cr=await sb.from("categories").insert({name:parent,parent_id:null,user_id:session.user.id}).select("id").single();if(cr.error)throw cr.error;parentId=cr.data.id}else parentId=po.id;}const r=await sb.from("categories").insert({name,parent_id:parentId,user_id:session.user.id}).select("id").single();if(r.error)throw r.error;await loadMeta();await render();}
-  catch(e){alert("新增分類失敗："+(e.message||String(e)))}
-}
-async function addLocationPrompt(){
-  if(!appOnline)return alert("新增位置目前需要網路。");
-  const parent=(prompt("上層位置（可留空）：")||"").trim();const name=(prompt("位置名稱：")||"").trim();if(!name)return;
-  try{let parentId=null;if(parent){let po=locationCache.find(c=>!c.parent_id&&c.name===parent);if(!po){const cr=await sb.from("locations").insert({name:parent,parent_id:null,user_id:session.user.id}).select("id").single();if(cr.error)throw cr.error;parentId=cr.data.id}else parentId=po.id;}const r=await sb.from("locations").insert({name,parent_id:parentId,user_id:session.user.id}).select("id").single();if(r.error)throw r.error;await loadMeta();await render();}
-  catch(e){alert("新增位置失敗："+(e.message||String(e)))}
-}
-
 async function renderTransactions(){
   const {data,error}=await sb.from("inventory_transactions").select("id,product_id,type,quantity,delta,before_stock,after_stock,reason,created_at").order("created_at",{ascending:false}).limit(300);
   if(error)throw new Error("讀取異動紀錄失敗："+error.message);
@@ -554,17 +453,6 @@ async function openProduct(id=null){
   $("qty").value=p?.stock??0;setStockFieldState(!!p);$("minQty").value=p?.min_stock??0;$("cost").value=p?.cost??"";$("price").value=p?.price??"";$("note").value=p?.note||"";
   $("preview").style.display=p?.photo_path?"block":"none";$("preview").src=p?.photo_path?await signedPhoto(p.photo_path):"";$("photo").value="";$("productDialog").showModal();
 }
-async function ensureCategoryIds(parentName, childName){
-  if(!appOnline)return {category_id:null}; let parentId=null; const pn=(parentName||"").trim(),cn=(childName||"").trim();
-  if(pn){let p=categoryCache.find(c=>!c.parent_id&&c.name===pn);if(!p){const r=await sb.from("categories").insert({name:pn,parent_id:null,user_id:session.user.id}).select("id,name,parent_id").single();if(r.error)throw r.error;p=r.data;categoryCache.push(p);}parentId=p.id;}
-  if(cn){let c=categoryCache.find(x=>x.name===cn&&String(x.parent_id||"")===String(parentId||""));if(!c){const r=await sb.from("categories").insert({name:cn,parent_id:parentId,user_id:session.user.id}).select("id,name,parent_id").single();if(r.error)throw r.error;c=r.data;categoryCache.push(c);}return {category_id:c.id};}
-  return {category_id:parentId};
-}
-async function ensureLocationId(name){
-  if(!appOnline)return {location_id:null};const n=(name||"").trim();if(!n)return {location_id:null};let l=locationCache.find(x=>x.name===n);
-  if(!l){const r=await sb.from("locations").insert({name:n,parent_id:null,user_id:session.user.id}).select("id,name,parent_id").single();if(r.error)throw r.error;l=r.data;locationCache.push(l);}return {location_id:l.id};
-}
-
 async function uploadPhoto(file,productId){
   const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";const path=`${session.user.id}/products/${productId}-${Date.now()}.${ext}`;
   const {error}=await sb.storage.from(CONFIG.bucket).upload(path,file,{contentType:file.type||"image/jpeg",upsert:false});if(error)throw error;return path;
@@ -574,9 +462,7 @@ $("saveProduct").onclick=async()=>{
   const user=await sb.auth.getUser();if(!user.data.user)return;
   const name=$("name").value.trim();if(!name)return alert("請輸入商品名稱");$("saveProduct").disabled=true;
   try{
-    const parentName=$("parentCategory").value.trim()||null; const childName=$("childCategory").value.trim()||null; const locationName=$("location").value.trim()||null;
-    const catRel=await ensureCategoryIds(parentName,childName); const locRel=await ensureLocationId(locationName);
-    const obj={name,sku:$("sku").value.trim()||null,spec:$("spec").value.trim()||null,barcode:$("barcode").value.trim()||null,vendor_id:$("vendor").value||null,category_id:catRel.category_id||null,location_id:locRel.location_id||null,unit:$("unit").value.trim()||"個",parent_category:parentName,child_category:childName,location:locationName,record_date:$("date").value||today,min_stock:Math.max(0,Number($("minQty").value||0)),cost:Math.max(0,Number($("cost").value||0)),price:Math.max(0,Number($("price").value||0)),note:$("note").value.trim()||null,category:parentName};
+    const obj={name,sku:$("sku").value.trim()||null,spec:$("spec").value.trim()||null,barcode:$("barcode").value.trim()||null,vendor_id:$("vendor").value||null,unit:$("unit").value.trim()||"個",parent_category:$("parentCategory").value.trim()||null,child_category:$("childCategory").value.trim()||null,location:$("location").value.trim()||null,record_date:$("date").value||today,min_stock:Math.max(0,Number($("minQty").value||0)),cost:Math.max(0,Number($("cost").value||0)),price:Math.max(0,Number($("price").value||0)),note:$("note").value.trim()||null,category:$("parentCategory").value.trim()||null};
     if(editingId){if(pendingPhoto)obj.photo_path=await uploadPhoto(pendingPhoto,editingId);const r=await sb.from("products").update({...obj,updated_at:new Date().toISOString()}).eq("id",editingId);if(r.error)throw r.error}
     else{
       const id=crypto.randomUUID();
@@ -593,12 +479,7 @@ $("cancelProduct").onclick=()=>$("productDialog").close();
 
 function openVendor(){$("vendorName").value="";$("vendorPhone").value="";$("vendorAddress").value="";$("vendorContact").value="";$("vendorNote").value="";$("vendorDialog").showModal()}
 $("cancelVendor").onclick=()=>$("vendorDialog").close();
-$("quickAddCategory").onclick=async()=>{const p=(prompt("母項目名稱（可留空）：")||"").trim();const c=(prompt("分類名稱（子項目，可留空）：")||"").trim();if(!p&&!c)return;try{if(!appOnline)return alert("新增分類目前需要網路。");let parentId=null;if(p){let po=categoryCache.find(x=>!x.parent_id&&x.name===p);if(!po){const r=await sb.from("categories").insert({name:p,parent_id:null,user_id:session.user.id}).select("id,name,parent_id").single();if(r.error)throw r.error;po=r.data;categoryCache.push(po);}parentId=po.id;$("parentCategory").value=p;}if(c){let co=categoryCache.find(x=>x.name===c&&String(x.parent_id||"")===String(parentId||""));if(!co){const r=await sb.from("categories").insert({name:c,parent_id:parentId,user_id:session.user.id}).select("id,name,parent_id").single();if(r.error)throw r.error;co=r.data;categoryCache.push(co);}$("childCategory").value=c;}else $("childCategory").value="";}catch(e){alert("新增分類失敗："+(e.message||String(e)))}};
-$("parentCategory").addEventListener("input",e=>refreshChildCategorySuggestions(e.target.value));
-$("quickAddLocation").onclick=async()=>{const n=(prompt("位置名稱：")||"").trim();if(!n)return;try{if(!appOnline)return alert("新增位置目前需要網路。");await ensureLocationId(n);$("location").value=n;}catch(e){alert("新增位置失敗："+(e.message||String(e)))}};
-
-$("quickAddVendor").onclick=()=>{$("productDialog").close();openVendor();};
-$("saveVendor").onclick=async()=>{const name=$("vendorName").value.trim();if(!name)return alert("請輸入廠商名稱");const r=await sb.from("vendors").insert({name,phone:$("vendorPhone").value.trim()||null,address:$("vendorAddress").value.trim()||null,contact_name:$("vendorContact").value.trim()||null,note:$("vendorNote").value.trim()||null});if(r.error)return alert("新增廠商失敗："+r.error.message);await loadMeta();$("vendorDialog").close();await render()};
+$("saveVendor").onclick=async()=>{const name=$("vendorName").value.trim();if(!name)return alert("請輸入廠商名稱");const r=await sb.from("vendors").insert({name,phone:$("vendorPhone").value.trim()||null,address:$("vendorAddress").value.trim()||null,contact_name:$("vendorContact").value.trim()||null,note:$("vendorNote").value.trim()||null});if(r.error)return alert("新增廠商失敗："+r.error.message);$("vendorDialog").close();await render()};
 
 function openMovement(id,type){movementId=id;movementType=type;const p=productCache.find(x=>x.id===id);$("movementTitle").textContent=type==="入庫"?"📥 商品入庫":"📤 商品出庫";$("movementProduct").innerHTML=`${esc(p?.name||"商品")}<br>目前庫存：<strong>${fmt(p?.stock)} ${esc(p?.unit||"個")}</strong>`;$("movementQty").value=1;$("movementReason").value=type==="入庫"?"進貨":"銷售";$("movementDialog").showModal()}
 $("cancelMovement").onclick=()=>$("movementDialog").close();
@@ -636,17 +517,15 @@ $("documentPhoto").onchange=e=>{const f=e.target.files[0];if(!f)return;$("docPre
 $("cancelDocument").onclick=()=>$("documentDialog").close();
 $("createDocument").onclick=async()=>{const f=$("documentPhoto").files[0];if(!f)return alert("請先選擇貨單照片");const id=crypto.randomUUID(),ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg",path=`${session.user.id}/documents/${id}.${ext}`;const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg"});if(up.error)return alert("貨單照片上傳失敗："+up.error.message);const ins=await sb.from("purchase_documents").insert({id,status:"待辨識",document_date:today,image_path:path});if(ins.error)return alert("建立貨單失敗："+ins.error.message);$("documentDialog").close();await render();alert("貨單已儲存。目前先完成貨單雲端保存；貨單 AI 辨識可再接後端功能。")};
 
-function updateTabButtons(){document.querySelectorAll(".tabs button").forEach(b=>{b.classList.toggle("active",b.dataset.tab===currentTab);});}
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;page=0;updateTabButtons();render()});
-updateTabButtons();
-$("search").oninput=()=>{page=0;searchMode="normal";smartQuery="";smartFilters=null;if($("smartSummary")){$("smartSummary").classList.add("hidden");$("smartSummary").textContent="";}if(currentTab!=="products"){currentTab="products";updateTabButtons();}updateSearchHint();loadProducts().catch(e=>setAppMessage(e.message))};
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;page=0;render()});
+$("search").oninput=()=>{page=0;searchMode="normal";smartQuery="";smartFilters=null;if($("smartSummary")){$("smartSummary").classList.add("hidden");$("smartSummary").textContent="";}if(currentTab!=="products")currentTab="products";updateSearchHint();loadProducts().catch(e=>setAppMessage(e.message))};
 $("search").addEventListener("change",()=>saveRecentSearch($("search").value));
 
 $("addBtn").onclick=()=>currentTab==="vendors"?openVendor():openProduct();
 
 async function render(first=false){
   try{
-    if(!session)return;showApp();updateTabButtons();
+    if(!session)return;showApp();
     if(first)$("app").innerHTML=`<div class="card empty">正在連線雲端資料庫…</div>`;
     await loadMeta();await loadStats();
     if(currentTab==="products")await loadProducts();
@@ -883,21 +762,6 @@ async function runSmartSearch(q,options={}){
   return _originalRunSmartSearch(q,options);
 }
 
-
-function refreshCategoryLocationSuggestions(){
-  const parents=[...new Set(categoryCache.filter(c=>!c.parent_id).map(c=>c.name).filter(Boolean))];
-  const childs=[...new Set(categoryCache.filter(c=>c.parent_id).map(c=>c.name).filter(Boolean))];
-  const locs=[...new Set(locationCache.map(c=>c.name).filter(Boolean))];
-  if($('parentCategoryOptions')) $('parentCategoryOptions').innerHTML=parents.map(x=>`<option value="${esc(x)}"></option>`).join('');
-  if($('childCategoryOptions')) $('childCategoryOptions').innerHTML=childs.map(x=>`<option value="${esc(x)}"></option>`).join('');
-  if($('locationOptions')) $('locationOptions').innerHTML=locs.map(x=>`<option value="${esc(x)}"></option>`).join('');
-}
-function refreshChildCategorySuggestions(parentName){
-  const pn=String(parentName||'').trim();
-  const p=categoryCache.find(c=>!c.parent_id&&c.name===pn);
-  const childs=p?categoryCache.filter(c=>String(c.parent_id)===String(p.id)).map(c=>c.name).filter(Boolean):categoryCache.filter(c=>c.parent_id).map(c=>c.name).filter(Boolean);
-  if($('childCategoryOptions')) $('childCategoryOptions').innerHTML=[...new Set(childs)].map(x=>`<option value="${esc(x)}"></option>`).join('');
-}
 async function openProduct(id=null){
   await loadMeta();editingId=id;pendingPhoto=null;let p=null;
   if(id){
@@ -909,7 +773,6 @@ async function openProduct(id=null){
   $("productDialogTitle").textContent=p?"編輯商品":"新增商品";setStockFieldState(!!p);
   $("name").value=p?.name||"";$("sku").value=p?.sku||"";$("spec").value=p?.spec||"";$("barcode").value=p?.barcode||"";
   $("vendor").innerHTML=`<option value="">未設定廠商</option>`+vendorCache.map(v=>`<option value="${v.id}" ${p?.vendor_id===v.id?"selected":""}>${esc(v.name)}</option>`).join("");
-  refreshCategoryLocationSuggestions();refreshChildCategorySuggestions(p?.parent_category||"");
   $("unit").value=p?.unit||"個";$("parentCategory").value=p?.parent_category||"";$("childCategory").value=p?.child_category||"";$("location").value=p?.location||"";$("date").value=p?.record_date||today;
   $("qty").value=p?.stock??0;$("minQty").value=p?.min_stock??0;$("cost").value=p?.cost??"";$("price").value=p?.price??"";$("note").value=p?.note||"";
   $("preview").style.display="none";$("preview").src="";
@@ -922,9 +785,7 @@ async function saveProductOfflineOrOnline(){
   const user=session?.user || getOfflineUser();if(!user?.id)return alert("尚未登入，請先在線登入一次。");
   const name=$("name").value.trim();if(!name)return alert("請輸入商品名稱");$("saveProduct").disabled=true;
   try{
-    const parentName=$("parentCategory").value.trim()||null; const childName=$("childCategory").value.trim()||null; const locationName=$("location").value.trim()||null;
-    const catRel=await ensureCategoryIds(parentName,childName); const locRel=await ensureLocationId(locationName);
-    const base={name,sku:$("sku").value.trim()||null,spec:$("spec").value.trim()||null,barcode:$("barcode").value.trim()||null,vendor_id:$("vendor").value||null,category_id:catRel.category_id||null,location_id:locRel.location_id||null,unit:$("unit").value.trim()||"個",parent_category:parentName,child_category:childName,location:locationName,record_date:$("date").value||today,min_stock:Math.max(0,Number($("minQty").value||0)),cost:Math.max(0,Number($("cost").value||0)),price:Math.max(0,Number($("price").value||0)),note:$("note").value.trim()||null,category:parentName};
+    const base={name,sku:$("sku").value.trim()||null,spec:$("spec").value.trim()||null,barcode:$("barcode").value.trim()||null,vendor_id:$("vendor").value||null,unit:$("unit").value.trim()||"個",parent_category:$("parentCategory").value.trim()||null,child_category:$("childCategory").value.trim()||null,location:$("location").value.trim()||null,record_date:$("date").value||today,min_stock:Math.max(0,Number($("minQty").value||0)),cost:Math.max(0,Number($("cost").value||0)),price:Math.max(0,Number($("price").value||0)),note:$("note").value.trim()||null,category:$("parentCategory").value.trim()||null};
     const isNew=!editingId;const id=editingId||crypto.randomUUID();
     let current=isNew?{id,user_id:user.id,stock:Math.max(0,Number($("qty").value||0)),created_at:new Date().toISOString()}:await idbGet("products",id);
     current=current||{id,user_id:user.id,stock:0,created_at:new Date().toISOString()};
@@ -949,29 +810,8 @@ async function saveVendorOfflineOrOnline(){
   const name=$("vendorName").value.trim();if(!name)return alert("請輸入廠商名稱");
   const id=crypto.randomUUID();const obj={id,user_id:session.user.id,name,phone:$("vendorPhone").value.trim()||null,address:$("vendorAddress").value.trim()||null,contact_name:$("vendorContact").value.trim()||null,note:$("vendorNote").value.trim()||null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   try{
-    if(!appOnline){
-      await cacheVendor(obj);
-      await enqueue("vendor_create",obj);
-      vendorCache=[...vendorCache.filter(v=>v.id!==id),obj].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"zh-TW"));
-      $("vendorDialog").close();
-      await renderVendors();
-      alert("廠商已儲存在本機，恢復網路後會同步雲端。");
-      return
-    }
-
-    // 要拿到資料庫實際寫入的那一筆，再更新畫面，避免「統計增加、列表仍是舊快取」。
-    const r=await sb.from("vendors")
-      .insert(obj)
-      .select("id,name,phone,address,contact_name,note,user_id,created_at,updated_at")
-      .single();
-    if(r.error)throw r.error;
-
-    await cacheVendor(r.data);
-    vendorCache=[...vendorCache.filter(v=>v.id!==r.data.id),r.data]
-      .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"zh-TW"));
-    $("vendorDialog").close();
-    await renderVendors();
-    await loadStats();
+    if(!appOnline){await cacheVendor(obj);await enqueue("vendor_create",obj);$("vendorDialog").close();await render();alert("廠商已儲存在本機，恢復網路後會同步雲端。");return}
+    const r=await sb.from("vendors").insert(obj);if(r.error)throw r.error;await cacheVendor(obj);$("vendorDialog").close();await render();
   }catch(e){alert("新增廠商失敗："+(e.message||String(e)))}
 }
 $("saveVendor").onclick=saveVendorOfflineOrOnline;
@@ -999,12 +839,42 @@ $("saveMovement").onclick=saveMovementOfflineOrOnline;
 async function removeProductOfflineOrOnline(id){
   if(!confirm("確定刪除這個商品？"))return;
   const p=await idbGet("products",id)||productCache.find(x=>x.id===id);
+  const card=document.querySelector(`[data-product-id="${CSS.escape(String(id))}"]`);
   try{
-    if(!appOnline){await idbDelete("products",id);await enqueue("product_delete",{id,photo_path:p?.photo_path||null});await render();alert("已在本機刪除。恢復網路後會同步刪除雲端資料。");return}
-    if(p?.photo_path)await sb.storage.from(CONFIG.bucket).remove([p.photo_path]);const r=await sb.from("products").delete().eq("id",id);if(r.error)throw r.error;await idbDelete("products",id);await render();
-  }catch(e){alert("刪除失敗："+(e.message||String(e)))}
+    if(!appOnline){
+      await idbDelete("products",id);
+      productCache=productCache.filter(x=>x.id!==id);
+      await enqueue("product_delete",{id,photo_path:p?.photo_path||null});
+      card?.remove();
+      await render();
+      alert("已在本機刪除。恢復網路後會同步刪除雲端資料。");
+      return;
+    }
+
+    // 先確認雲端真的刪除了「這一筆」商品，再同步本機與畫面。
+    const r=await sb.from("products")
+      .delete()
+      .eq("id",id)
+      .eq("user_id",session.user.id)
+      .select("id")
+      .maybeSingle();
+    if(r.error)throw r.error;
+    if(!r.data)throw new Error("商品不存在，或目前帳號沒有刪除這筆商品的權限");
+
+    if(p?.photo_path){
+      await sb.storage.from(CONFIG.bucket).remove([p.photo_path]).catch(()=>{});
+    }
+    await idbDelete("products",id).catch(()=>{});
+    productCache=productCache.filter(x=>x.id!==id);
+    card?.remove();
+    await render();
+  }catch(e){
+    alert("刪除失敗："+(e.message||String(e)));
+    await render().catch(()=>{});
+  }
 }
 removeProduct=removeProductOfflineOrOnline;
+
 
 async function uploadPhoto(file,productId){
   if(!appOnline)throw new Error("目前離線，照片會在恢復網路後同步。");
@@ -1032,219 +902,41 @@ async function renderTransactions(){
 
 async function renderDocuments(){
   let docs=[];
-  if(appOnline){
-    const r=await sb.from("purchase_documents").select("id,user_id,vendor_id,document_number,document_date,image_path,status,ai_summary,ai_raw,created_at,updated_at").order("created_at",{ascending:false}).limit(100);
-    if(r.error)throw new Error("讀取貨單失敗："+r.error.message);
-    docs=(r.data||[]).filter(d=>d.status!=="已刪除");
-    const serverIds=new Set(docs.map(d=>d.id));
-    const cachedDocs=await idbGetAll("documents").catch(()=>[]);
-    for(const old of cachedDocs){if(old?.id&&!serverIds.has(old.id))await idbDelete("documents",old.id).catch(()=>{});}
-    for(const d of docs)await cacheDocument(d);
-  }else{
-    docs=(await idbGetAll("documents")).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
-  }
+  if(appOnline){const r=await sb.from("purchase_documents").select("id,vendor_id,document_number,document_date,image_path,status,ai_summary,created_at,updated_at").order("created_at",{ascending:false}).limit(100);if(r.error)throw new Error("讀取貨單失敗："+r.error.message);docs=r.data||[];for(const d of docs)await cacheDocument(d)}else docs=(await idbGetAll("documents")).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
   const vName=id=>vendorCache.find(v=>v.id===id)?.name||"未設定廠商";
-  const cards=docs.map(d=>{
-    let action="";
-    if(d.status==="待確認"){
-      action=`<div class="review-actions"><button class="primary" data-doc-review="${d.id}">✅ 檢視並確認</button><button class="secondary" data-doc-ai="${d.id}">🧠 重新辨識</button><button class="danger" data-doc-delete="${d.id}">🗑 刪除貨單</button></div>`;
-    }else if(d.status==="已確認"){
-      action=`<div class="review-actions"><button class="secondary" data-doc-review="${d.id}">查看辨識結果</button><button class="danger" data-doc-delete="${d.id}" data-doc-confirmed="1">🗑 刪除貨單</button></div>`;
-    }else if(d.status==="待辨識"&&appOnline){
-      action=`<div class="review-actions"><button class="primary" data-doc-ai="${d.id}">🧠 開始 AI 辨識</button><button class="danger" data-doc-delete="${d.id}">🗑 刪除貨單</button></div>`;
-    }else{
-      action=`<div class="review-actions"><span class="muted">${d._local?"待同步":"等待處理"}</span><button class="danger" data-doc-delete="${d.id}">🗑 刪除貨單</button></div>`;
-    }
-    const safeDeleteNote=d.status==="已確認"?`<div class="small muted" style="margin-top:8px">此貨單已入庫；刪除只會刪除貨單紀錄，不會回扣庫存。</div>`:"";
-    return `<div class="card section"><div class="row"><div><strong>📷 ${esc(d.document_number||"未命名貨單")}</strong><div class="meta">${esc(d.document_date||"")}　🏭 ${esc(vName(d.vendor_id))}<br>狀態：${esc(d.status||"待辨識")}${d._local?"　（待同步）":""}</div></div><div>${action}</div></div>${d.ai_summary?`<div class="notice" style="margin-top:10px">${esc(d.ai_summary)}</div>`:""}${safeDeleteNote}</div>`;
-  }).join("");
-  $("app").innerHTML=`<div class="addbar"><div class="hint">📷 拍照後會自動送到 AI 辨識；辨識完成後先確認分類、廠商、位置與價格，再一次入庫。</div><button class="primary" id="addDocumentBtn" type="button">＋ 新增貨單</button></div><div class="list">${cards||`<div class="card empty">尚無貨單</div>`}</div>`;
+  $("app").innerHTML=`<div class="addbar"><div class="hint">貨單照片可以先離線保存，連線後再同步</div><button class="primary" id="addDocumentBtn" type="button">＋ 新增貨單</button></div><div class="list">${docs.map(d=>`<div class="card section"><div class="row"><div><strong>📷 ${esc(d.document_number||"未命名貨單")}</strong><div class="meta">${esc(d.document_date||"")}　🏭 ${esc(vName(d.vendor_id))}<br>狀態：${esc(d.status||"待辨識")}${d._local?"　（待同步）":""}</div></div></div>${d.ai_summary?`<div class="notice" style="margin-top:10px">${esc(d.ai_summary)}</div>`:""}</div>`).join("")||`<div class="card empty">尚無貨單</div>`}</div>`;
 }
 
 async function createDocumentOfflineOrOnline(){
-  const f=$("documentPhoto").files[0]; if(!f)return alert("請先選擇貨單照片");
-  const id=crypto.randomUUID();
-  const ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
-  const path=`${session.user.id}/documents/${id}.${ext}`;
+  const f=$("documentPhoto").files[0];if(!f)return alert("請先選擇貨單照片");
+  const id=crypto.randomUUID();const ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";const path=`${session.user.id}/documents/${id}.${ext}`;
   const base={id,user_id:session.user.id,status:"待辨識",document_date:today,image_path:path,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   try{
-    if(!appOnline){
-      await cacheDocument({...base,_local:true});
-      await enqueue("document_create",base,f);
-      $("documentDialog").close(); await render();
-      alert("貨單已儲存在本機。恢復網路後會自動上傳並進行 AI 辨識。"); return;
-    }
-    const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg",upsert:false});
-    if(up.error)throw up.error;
-    const ins=await sb.from("purchase_documents").insert(base);
-    if(ins.error)throw ins.error;
-    await cacheDocument(base);
-    $("documentDialog").close(); await render();
-    await runPurchaseAI(id);
+    if(!appOnline){await cacheDocument({...base,_local:true});await enqueue("document_create",base,f);$("documentDialog").close();await render();alert("貨單已儲存在本機。恢復網路後會同步雲端；AI 辨識仍需網路。");return}
+    const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg"});if(up.error)throw up.error;const ins=await sb.from("purchase_documents").insert(base);if(ins.error)throw ins.error;await cacheDocument(base);$("documentDialog").close();await render();alert("貨單已儲存。AI 辨識功能會在後端完成。");
   }catch(e){alert("建立貨單失敗："+(e.message||String(e)))}
 }
-
-async function runPurchaseAI(documentId){
-  if(!appOnline||!session)return alert("目前需要網路才能進行 AI 辨識。");
+// 貨單按鈕：使用事件監聽，不依賴 innerHTML 的 inline onclick，避免 GitHub Pages/瀏覽器快取造成按鈕無反應。
+document.addEventListener("click",(e)=>{
+  const btn=e.target.closest("#addDocumentBtn");
+  if(!btn)return;
+  const dlg=$("documentDialog");
+  if(!dlg){alert("找不到貨單視窗，請重新整理頁面。");return;}
   try{
-    setAppMessage("🧠 AI 正在讀取貨單，請稍候…");
-    const {data,error}=await sb.functions.invoke(CONFIG.purchaseAIFunction,{body:{document_id:documentId}});
-    if(error){let detail=error.message||String(error);try{if(error.context){const t=await error.context.text();if(t)detail+=`｜${t.slice(0,400)}`;}}catch(_){}throw new Error(detail);}
-    if(!data?.ok)throw new Error(data?.error||"AI 辨識失敗");
-    if(data.document)await cacheDocument(data.document);
-    await render();
-    currentReviewDocumentId=documentId;
-    await openPurchaseReview(documentId);
-  }catch(e){
-    console.error("貨單 AI 辨識失敗",e);
-    alert("AI 辨識失敗："+(e.message||String(e))+"\n你可以稍後再按「開始 AI 辨識」。");
-    await render();
-  }
-}
-
-async function deletePurchaseDocument(documentId, isConfirmed){
-  const card=document.querySelector(`[data-doc-delete="${CSS.escape(documentId)}"]`)?.closest('.card.section');
-  const msg=isConfirmed
-    ? "這張貨單已經入庫。\n\n確定刪除貨單紀錄？\n（只刪除貨單，不會回扣已入庫的庫存）"
-    : "確定刪除這張 AI 貨單？\n刪除後這張貨單會直接從列表消失，之後可以重新拍照辨識。";
-  if(!confirm(msg))return false;
-  try{
-    if(!appOnline){
-      const d=(await idbGetAll("documents")).find(x=>x.id===documentId);
-      await idbDelete("documents",documentId);
-      await enqueue("document_delete",{id:documentId,image_path:d?.image_path||null});
-      if(currentReviewDocumentId===documentId){currentReviewDocumentId=null;try{$("purchaseReviewDialog").close()}catch{}}
-      if(card)card.remove();
-      await renderDocuments();
-      return true;
-    }
-    const doc=await sb.from("purchase_documents").select("id,image_path,status").eq("id",documentId).eq("user_id",session.user.id).maybeSingle();
-    if(doc.error)throw doc.error;
-    if(!doc.data)throw new Error("找不到這張貨單，可能已經刪除。");
-    const items=await sb.from("purchase_document_items").delete().eq("document_id",documentId).eq("user_id",session.user.id);
-    if(items.error)throw items.error;
-    const del=await sb.from("purchase_documents").delete().eq("id",documentId).eq("user_id",session.user.id).select("id");
-    if(del.error)throw del.error;
-    if(!del.data?.length)throw new Error("貨單沒有成功刪除，請檢查資料庫 DELETE 權限。");
-    if(doc.data.image_path)await sb.storage.from(CONFIG.bucket).remove([doc.data.image_path]).catch(()=>{});
-    await idbDelete("documents",documentId).catch(()=>{});
-    if(currentReviewDocumentId===documentId){currentReviewDocumentId=null;try{$("purchaseReviewDialog").close()}catch{}}
-    if(card)card.remove();
-    await renderDocuments();
-    return true;
-  }catch(e){
-    alert("刪除貨單失敗："+(e.message||String(e)));
-    await renderDocuments().catch(()=>{});
-    return false;
-  }
-}
-
-let currentReviewDocumentId=null;
-let purchaseReviewState=new Map();
-function setReviewItemState(id,patch){purchaseReviewState.set(id,{...(purchaseReviewState.get(id)||{removed:false,confirmed:false}),...patch});}
-function getReviewItemState(id){return purchaseReviewState.get(id)||{removed:false,confirmed:false};}
-function updateReviewSummary(){
-  const cards=[...document.querySelectorAll('.purchase-item')].filter(el=>!el.classList.contains('review-item-removed'));
-  const confirmed=cards.filter(el=>getReviewItemState(el.dataset.itemId).confirmed).length,total=cards.length;
-  const btn=$('confirmPurchaseReview');if(btn){btn.disabled=total>0&&confirmed!==total;btn.textContent=total?`✅ 確認全部 ${confirmed}/${total} 筆並入庫`:'✅ 確認並入庫';}
-}
-async function openPurchaseReview(documentId){
-  if(!appOnline)return alert('離線時不能進行 AI 貨單確認，請恢復網路。');
-  const r=await sb.from('purchase_documents').select('id,user_id,vendor_id,document_number,document_date,image_path,status,ai_summary,ai_raw,created_at,updated_at').eq('id',documentId).single();if(r.error)throw new Error('讀取貨單失敗：'+r.error.message);
-  const ir=await sb.from('purchase_document_items').select('id,document_id,user_id,product_id,raw_name,raw_spec,quantity,unit,unit_price,match_status,match_confidence').eq('document_id',documentId).order('created_at');if(ir.error)throw new Error('讀取貨單項目失敗：'+ir.error.message);
-  const d=r.data,items=ir.data||[];let raw={};try{raw=typeof d.ai_raw==='string'?JSON.parse(d.ai_raw):(d.ai_raw||{})}catch{}purchaseReviewState=new Map();
-  const suggestedVendor=d.vendor_id||raw.suggested_vendor_id||'';
-  $('purchaseReviewHeader').innerHTML=`<strong>📄 ${esc(d.document_number||'未命名貨單')}</strong><br>日期：${esc(d.document_date||today)}　合計：${raw.total_amount!=null?fmt(raw.total_amount):'未辨識'}<br>${esc(d.ai_summary||'AI 已完成辨識，請逐筆確認。')}<div class="review-note">每一筆都可以單獨「✅ 確認」或「🗑 刪除」，刪除的項目不會入庫。</div>`;
-  const vendorOpts=`<option value="">未設定廠商</option>`+vendorCache.map(v=>`<option value="${v.id}" ${v.id===suggestedVendor?'selected':''}>${esc(v.name)}</option>`).join('');
-  $('purchaseReviewVendor').innerHTML=`<div><label>貨單廠商</label><select id="reviewVendor">${vendorOpts}</select></div><div><label>貨單日期</label><input id="reviewDocDate" type="date" value="${esc(d.document_date||today)}"></div>`;
-  const htmlItems=items.map((it,idx)=>{
-    const meta=(raw.items||[])[idx]||{},candidates=Array.isArray(meta.candidates)?meta.candidates:[],chosen=it.product_id||meta.suggested_product_id||'';
-    const pOpts=`<option value="">＋ 建立新商品</option>`+candidates.map(c=>`<option value="${c.id}" ${c.id===chosen?'selected':''}>${esc(c.name||'')}${c.spec?'｜'+esc(c.spec):''}</option>`).join('');
-    const parent=meta.suggested_parent_category||'',child=meta.suggested_child_category||'',loc=meta.suggested_location||'',price=it.unit_price==null?'':it.unit_price;
-    setReviewItemState(it.id,{removed:false,confirmed:d.status==='已確認'});const state=getReviewItemState(it.id);
-    return `<div class="card section purchase-item ${state.confirmed?'review-item-confirmed':''}" data-item-id="${it.id}">
-      <div class="row"><strong>第 ${idx+1} 筆</strong><span class="badge review-status ${state.confirmed?'ok':'low'}">${state.confirmed?'✅ 已確認':(it.match_status||'待確認')}${it.match_confidence!=null?` ${Math.round(Number(it.match_confidence)*100)}%`:''}</span></div>
-      <div class="two"><div><label>原貨單品名</label><input class="ri-name" value="${esc(it.raw_name||'')}"></div><div><label>規格</label><input class="ri-spec" value="${esc(it.raw_spec||'')}"></div></div>
-      <div class="two"><div><label>對應商品</label><select class="ri-product">${pOpts}</select></div><div><label>數量</label><input class="ri-qty" type="number" min="0" step="1" value="${Number(it.quantity||0)}"></div></div>
-      <div class="two"><div><label>單位名稱</label><input class="ri-unit" value="${esc(it.unit||meta.unit||'個')}"></div><div><label>進貨成本</label><input class="ri-cost" type="number" min="0" step="0.01" value="${esc(price)}"></div></div>
-      <div class="two"><div><label>母項目</label><input class="ri-parent" list="reviewParentOptions" value="${esc(parent)}" placeholder="例如：農業用品"></div><div><label>子項目</label><input class="ri-child" list="reviewChildOptions" value="${esc(child)}" placeholder="例如：抑制蓆"></div></div>
-      <div class="two"><div><label>所在位置</label><input class="ri-location" list="reviewLocationOptions" value="${esc(loc)}" placeholder="例如：A01-03"></div><div><label>售價</label><input class="ri-price" type="number" min="0" step="0.01" value="${esc(meta.suggested_price??'')}" placeholder="可之後再填"></div></div>
-      <div class="small" style="margin-top:8px">${esc(chosen?'AI 建議已找到相近商品，請確認。':'AI 建議：目前沒有足夠接近的既有商品，可確認後建立新商品。')} ${esc(meta.category_reason||'')}</div>
-      <div class="review-actions"><button type="button" class="secondary" data-review-confirm="${it.id}">✅ 確認此筆</button><button type="button" class="danger" data-review-remove="${it.id}">🗑 刪除此筆</button></div>
-    </div>`;
-  }).join('');
-  $('purchaseReviewItems').innerHTML=(htmlItems||'<div class="card empty">AI 沒有辨識到商品明細，請重新拍攝清楚的貨單。</div>')+`<datalist id="reviewParentOptions">${categoryCache.filter(c=>!c.parent_id).map(c=>`<option value="${esc(c.name)}"></option>`).join('')}</datalist><datalist id="reviewChildOptions">${categoryCache.filter(c=>c.parent_id).map(c=>`<option value="${esc(c.name)}"></option>`).join('')}</datalist><datalist id="reviewLocationOptions">${locationCache.map(c=>`<option value="${esc(c.name)}"></option>`).join('')}</datalist>`;
-  $('confirmPurchaseReview').style.display=d.status==='已確認'?'none':'';updateReviewSummary();$('purchaseReviewDialog').showModal();
-}
-async function removePurchaseReviewItem(itemId){
-  const card=document.querySelector(`.purchase-item[data-item-id="${CSS.escape(itemId)}"]`);
-  if(!card)return;
-  if(!confirm("確定刪除此筆貨單商品？刪除後不會入庫。"))return;
-  try{
-    if(appOnline){
-      const r=await sb.from("purchase_document_items").delete().eq("id",itemId).eq("user_id",session.user.id);
-      if(r.error)throw r.error;
+    if(typeof dlg.showModal === "function"){
+      if(!dlg.open) dlg.showModal();
+    }else if(typeof dlg.show === "function"){
+      dlg.show();
     }else{
-      await idbDelete("purchase_document_items",itemId).catch(()=>{});
+      dlg.setAttribute("open","open");
     }
-    setReviewItemState(itemId,{removed:true,confirmed:false});
-    card.remove();
-    updateReviewSummary();
-  }catch(e){
-    alert("刪除此筆失敗："+(e.message||String(e)));
+  }catch(err){
+    console.error("開啟貨單視窗失敗",err);
+    dlg.setAttribute("open","open");
   }
-}
-function confirmPurchaseReviewItem(itemId){
-  const card=document.querySelector(`.purchase-item[data-item-id="${CSS.escape(itemId)}"]`);if(!card)return;
-  const qty=Number(card.querySelector(".ri-qty")?.value||0),name=card.querySelector(".ri-name")?.value.trim();
-  if(!name||qty<=0)return alert("請先確認商品名稱與數量。");
-  setReviewItemState(itemId,{confirmed:true,removed:false});
-  card.classList.remove("review-item-removed");
-  card.classList.add("review-item-confirmed");
-  const b=card.querySelector(".review-status");if(b){b.className="badge ok review-status";b.textContent="✅ 已確認";}
-  const btn=card.querySelector("[data-review-confirm]");if(btn){btn.classList.add("is-confirmed");btn.textContent="✅ 已確認";btn.disabled=true;}
-  updateReviewSummary();
-}
-async function ensureVendorForReview(name,id){
-  if(id)return id;
-  const clean=String(name||"").trim(); if(!clean)return null;
-  const q=await sb.from("vendors").select("id,name").ilike("name",clean).limit(5);
-  if(q.data?.[0])return q.data[0].id;
-  const ins=await sb.from("vendors").insert({name:clean,user_id:session.user.id}).select("id").single();
-  if(ins.error)throw ins.error; await loadMeta(); return ins.data.id;
-}
-
-async function confirmPurchaseReview(){
-  if(!appOnline)return alert('目前離線，不能確認入庫。');
-  const docR=await sb.from('purchase_documents').select('*').eq('id',currentReviewDocumentId).single();if(docR.error)return alert('讀取貨單失敗：'+docR.error.message);
-  const active=[...document.querySelectorAll('.purchase-item')].filter(el=>!el.classList.contains('review-item-removed'));if(!active.length)return alert('沒有可入庫的貨單項目。');
-  const pending=active.filter(el=>!getReviewItemState(el.dataset.itemId).confirmed);if(pending.length)return alert(`還有 ${pending.length} 筆商品尚未確認，請逐筆按「✅ 確認此筆」。`);
-  let vendorId=$("reviewVendor").value||null;if(!vendorId){let raw={};try{raw=typeof docR.data.ai_raw==='string'?JSON.parse(docR.data.ai_raw||'{}'):docR.data.ai_raw||{}}catch{}if(raw.vendor_name)vendorId=await ensureVendorForReview(raw.vendor_name,null);}
-  const rows=[];for(const el of active){const parent=el.querySelector('.ri-parent').value.trim()||null,child=el.querySelector('.ri-child').value.trim()||null,loc=el.querySelector('.ri-location').value.trim()||null;const catRel=await ensureCategoryIds(parent,child),locRel=await ensureLocationId(loc);rows.push({item_id:el.dataset.itemId,product_id:el.querySelector('.ri-product').value||null,name:el.querySelector('.ri-name').value.trim(),spec:el.querySelector('.ri-spec').value.trim()||null,quantity:Number(el.querySelector('.ri-qty').value||0),unit:el.querySelector('.ri-unit').value.trim()||'個',unit_price:Number(el.querySelector('.ri-cost').value||0),cost:Number(el.querySelector('.ri-cost').value||0),price:Number(el.querySelector('.ri-price').value||0),parent_category:parent,child_category:child,location:loc,vendor_id:vendorId,category_id:catRel.category_id||null,location_id:locRel.location_id||null});}
-  if(rows.some(x=>!x.name||x.quantity<=0))return alert('請確認每筆商品名稱與數量。');$("confirmPurchaseReview").disabled=true;
-  try{const rpc=await sb.rpc('confirm_purchase_document',{p_document_id:currentReviewDocumentId,p_items:rows});if(rpc.error)throw rpc.error;$("purchaseReviewDialog").close();alert(`✅ 貨單已確認，共 ${rows.length} 筆商品完成入庫。`);await render();}
-  catch(e){alert('確認入庫失敗：'+(e.message||String(e)))}finally{$("confirmPurchaseReview").disabled=false}
-}
-
-$("documentPhoto").onchange=e=>{const f=e.target.files[0];if(!f)return;$("docPreview").innerHTML=`<div class="notice">已選擇貨單：${esc(f.name)}<br>按「開始 AI 辨識」後會自動建立確認表單。</div>`};
-$("cancelDocument").onclick=()=>$("documentDialog").close();
-$("createDocument").onclick=createDocumentOfflineOrOnline;
-$("cancelPurchaseReview").onclick=()=>$("purchaseReviewDialog").close();
-$("confirmPurchaseReview").onclick=confirmPurchaseReview;
-
-document.addEventListener("click",async(e)=>{
-  const rc=e.target.closest("[data-review-confirm]");if(rc){confirmPurchaseReviewItem(rc.dataset.reviewConfirm);return;}
-  const rr=e.target.closest("[data-review-remove]");if(rr){await removePurchaseReviewItem(rr.dataset.reviewRemove);return;}
-  const delDoc=e.target.closest("[data-doc-delete]");
-  if(delDoc){await deletePurchaseDocument(delDoc.dataset.docDelete,delDoc.dataset.docConfirmed==="1");return;}
-  const aiBtn=e.target.closest("[data-doc-ai]");
-  if(aiBtn){aiBtn.disabled=true;await runPurchaseAI(aiBtn.dataset.docAi);return;}
-  const reviewBtn=e.target.closest("[data-doc-review]");
-  if(reviewBtn){currentReviewDocumentId=reviewBtn.dataset.docReview;try{await openPurchaseReview(currentReviewDocumentId)}catch(err){alert(err.message||String(err))}return;}
-  const add=e.target.closest("#addDocumentBtn");
-  if(add){const dlg=$("documentDialog");if(dlg){if(typeof dlg.showModal==="function"){if(!dlg.open)dlg.showModal()}else dlg.setAttribute("open","open");}}
 });
 
+$("createDocument").onclick=createDocumentOfflineOrOnline;
 
 async function syncOne(item){
   const fileRec=item.fileKey?await idbGet("files",item.fileKey):null;
@@ -1259,38 +951,14 @@ async function syncOne(item){
     const r=await sb.from("products").update({...obj,updated_at:new Date().toISOString()}).eq("id",obj.id);if(r.error)throw r.error;await cacheProduct(obj);if(fileRec?.blob&&old?.photo_path&&old.photo_path!==obj.photo_path)await sb.storage.from(CONFIG.bucket).remove([old.photo_path]).catch(()=>{});
   }else if(item.type==="vendor_create"){
     const r=await sb.from("vendors").upsert({...item.payload,user_id:user},{onConflict:"id"});if(r.error)throw r.error;await cacheVendor(item.payload);
-  }else if(item.type==="vendor_delete"){
-    const r=await sb.rpc("delete_vendor_safe",{p_vendor_id:item.payload.id});if(r.error)throw r.error;
-    await idbDelete("vendors",item.payload.id);
-    const localProducts=await idbGetAll("products").catch(()=>[]);
-    for(const p of localProducts.filter(p=>p.vendor_id===item.payload.id)){p.vendor_id=null;await cacheProduct(p);}
-    productCache=productCache.map(p=>p.vendor_id===item.payload.id?{...p,vendor_id:null}:p);
-  }else if(item.type==="category_delete"){
-    const ids=item.payload.ids||[];let r=ids.length?await sb.from("products").update({category_id:null}).in("category_id",ids):{error:null};if(r.error)throw r.error;
-    for(const id of [...ids].reverse()){r=await sb.from("categories").delete().eq("id",id);if(r.error)throw r.error;await idbDelete("categories",id);}
-  }else if(item.type==="location_delete"){
-    const ids=item.payload.ids||[];let r=ids.length?await sb.from("products").update({location_id:null}).in("location_id",ids):{error:null};if(r.error)throw r.error;
-    for(const id of [...ids].reverse()){r=await sb.from("locations").delete().eq("id",id);if(r.error)throw r.error;await idbDelete("locations",id);}
   }else if(item.type==="movement"){
     const p=item.payload;const r=await sb.rpc("change_stock",{p_product_id:p.product_id,p_type:p.type,p_quantity:p.quantity,p_reason:p.reason});if(r.error)throw r.error;await cacheProduct(r.data);
     const oldLocal=await idbGetAll("transactions");for(const t of oldLocal.filter(t=>t._local&&t.product_id===p.product_id&&t.type===p.type&&Number(t.quantity)===Number(p.quantity)).slice(-1))await idbDelete("transactions",t.id);
   }else if(item.type==="product_delete"){
-    const r=await sb.from("products").delete().eq("id",item.payload.id);if(r.error)throw r.error;if(item.payload.photo_path)await sb.storage.from(CONFIG.bucket).remove([item.payload.photo_path]).catch(()=>{});await idbDelete("products",item.payload.id);
+    const r=await sb.from("products").delete().eq("id",item.payload.id).eq("user_id",user).select("id").maybeSingle();if(r.error)throw r.error;if(item.payload.photo_path)await sb.storage.from(CONFIG.bucket).remove([item.payload.photo_path]).catch(()=>{});await idbDelete("products",item.payload.id);
   }else if(item.type==="document_create"){
     if(fileRec?.blob){const up=await sb.storage.from(CONFIG.bucket).upload(item.payload.image_path,fileRec.blob,{contentType:fileRec.blob.type||"image/jpeg"});if(up.error)throw up.error}
-    const r=await sb.from("purchase_documents").upsert(item.payload,{onConflict:"id"}).select("id,user_id,vendor_id,document_number,document_date,image_path,status,ai_summary,ai_raw,created_at,updated_at").single();if(r.error)throw r.error;await cacheDocument(r.data);await idbDelete("queue",item.id);if(item.fileKey)await idbDelete("files",item.fileKey);
-    try{await sb.functions.invoke(CONFIG.purchaseAIFunction,{body:{document_id:item.payload.id}});}catch(aiErr){console.warn("離線貨單同步後 AI 辨識失敗，稍後可手動重試",aiErr);}
-    return;
-  }else if(item.type==="document_delete"){
-    const id=item.payload.id;
-    const doc=await sb.from("purchase_documents").select("image_path").eq("id",id).eq("user_id",user).maybeSingle();
-    if(doc.error)throw doc.error;
-    const di=await sb.from("purchase_document_items").delete().eq("document_id",id).eq("user_id",user);
-    if(di.error)throw di.error;
-    const dd=await sb.from("purchase_documents").delete().eq("id",id).eq("user_id",user);
-    if(dd.error)throw dd.error;
-    if(doc.data?.image_path)await sb.storage.from(CONFIG.bucket).remove([doc.data.image_path]).catch(()=>{});
-    await idbDelete("documents",id).catch(()=>{});
+    const r=await sb.from("purchase_documents").upsert(item.payload,{onConflict:"id"});if(r.error)throw r.error;await cacheDocument(item.payload);
   }
   await idbDelete("queue",item.id);if(item.fileKey)await idbDelete("files",item.fileKey);
 }
