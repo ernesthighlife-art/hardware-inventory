@@ -874,7 +874,7 @@ async function renderDocuments(){
   let docs=[];
   if(appOnline){const r=await sb.from("purchase_documents").select("id,vendor_id,document_number,document_date,image_path,status,ai_summary,created_at,updated_at").order("created_at",{ascending:false}).limit(100);if(r.error)throw new Error("讀取貨單失敗："+r.error.message);docs=r.data||[];for(const d of docs)await cacheDocument(d)}else docs=(await idbGetAll("documents")).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
   const vName=id=>vendorCache.find(v=>v.id===id)?.name||"未設定廠商";
-  $("app").innerHTML=`<div class="addbar"><div class="hint">貨單照片可以先離線保存，連線後再同步</div><button class="primary" onclick="$(\"documentDialog\").showModal()">＋ 新增貨單</button></div><div class="list">${docs.map(d=>`<div class="card section"><div class="row"><div><strong>📷 ${esc(d.document_number||"未命名貨單")}</strong><div class="meta">${esc(d.document_date||"")}　🏭 ${esc(vName(d.vendor_id))}<br>狀態：${esc(d.status||"待辨識")}${d._local?"　（待同步）":""}</div></div></div>${d.ai_summary?`<div class="notice" style="margin-top:10px">${esc(d.ai_summary)}</div>`:""}</div>`).join("")||`<div class="card empty">尚無貨單</div>`}</div>`;
+  $("app").innerHTML=`<div class="addbar"><div class="hint">貨單照片可以先離線保存，連線後再同步</div><button class="primary" onclick="document.getElementById('documentDialog').showModal()">＋ 新增貨單</button></div><div class="list">${docs.map(d=>`<div class="card section"><div class="row"><div><strong>📷 ${esc(d.document_number||"未命名貨單")}</strong><div class="meta">${esc(d.document_date||"")}　🏭 ${esc(vName(d.vendor_id))}<br>狀態：${esc(d.status||"待辨識")}${d._local?"　（待同步）":""}</div></div></div>${d.ai_summary?`<div class="notice" style="margin-top:10px">${esc(d.ai_summary)}</div>`:""}</div>`).join("")||`<div class="card empty">尚無貨單</div>`}</div>`;
 }
 
 async function createDocumentOfflineOrOnline(){
@@ -951,8 +951,9 @@ async function downloadOfflineData(){
     const tx=await sb.from("inventory_transactions").select("id,product_id,type,quantity,delta,before_stock,after_stock,reason,created_at").order("created_at",{ascending:false}).limit(1000);if(!tx.error)await cacheRows("transactions",tx.data||[]);
     const docs=await sb.from("purchase_documents").select("id,vendor_id,document_number,document_date,image_path,status,ai_summary,created_at,updated_at").order("created_at",{ascending:false}).limit(100);if(!docs.error)await cacheRows("documents",docs.data||[]);
     await setMeta("last_full_sync",Date.now());await loadLocalMeta();await loadStats();
-    if(old){old.classList.remove("hidden");old.textContent=`✅ 離線資料已下載完成，共 ${fmt(total)} 筆商品。下次沒有網路時也能搜尋與編輯。`}
     await render();
+    if(old){old.classList.remove("hidden");old.textContent=`✅ 離線資料已下載完成，共 ${fmt(total)} 筆商品。下次沒有網路時也能搜尋與編輯。`}
+    const ss=$("syncStatus");if(ss){ss.className="network-pill";ss.textContent=`✅ 已下載 ${fmt(total)} 筆離線資料`;}
   }catch(e){if(old){old.classList.remove("hidden");old.textContent="下載離線資料失敗："+(e.message||String(e))}alert("下載離線資料失敗："+(e.message||String(e)))}
   finally{if(btn)btn.disabled=false;await updateOfflineUI()}
 }
