@@ -333,7 +333,7 @@ function renderProducts(ps){
     <div class="toolbar"><button class="chip" onclick="setQuickStockFilter('low')">⚠️ 低庫存</button><button class="chip" onclick="setQuickStockFilter('out')">❌ 缺貨</button><button class="chip" onclick="filterProducts('photo')">📷 有照片</button><button class="chip" onclick="clearSearch()">清除搜尋</button>${searchMode==="smart"&&smartQuery?`<button class="chip" onclick="clearSmartSearch()">🧠 清除智慧搜尋</button>`:""}</div>
     ${filterPanelHTML()}
     <div class="addbar"><div class="hint">最相關結果／第 ${fmt(totalCount?page*PAGE_SIZE+1:0)}～${fmt(Math.min((page+1)*PAGE_SIZE,totalCount))} 筆，共 ${fmt(totalCount)} 筆</div><button class="primary" onclick="openProduct()">＋ 新增商品</button></div>
-    <div class="list">${ps.length?ps.map(p=>{const st=Number(p.stock||0)===0?["缺貨","out"]:Number(p.stock||0)<=Number(p.min_stock||0)?["低庫存","low"]:["庫存正常","ok"];return `<div class="card product">
+    <div class="list">${ps.length?ps.map(p=>{const st=Number(p.stock||0)===0?["缺貨","out"]:Number(p.stock||0)<=Number(p.min_stock||0)?["低庫存","low"]:["庫存正常","ok"];return `<div class="card product" data-product-id="${esc(p.id)}">
       <div class="product-top"><div class="thumb">${p._photo?`<img src="${p._photo}">`:"📦"}</div><div class="info"><div class="name">${esc(p.name||"未命名商品")}</div>
       ${p.sku?`<div class="sku">編號：${esc(p.sku)}</div>`:""}<div class="meta">${p.spec?`規格：${esc(p.spec)}<br>`:""}🏭 ${esc(vendorName(p.vendor_id))}${p.location?`　📍 ${esc(p.location)}`:""}<br>
       ${p.parent_category?`📂 ${esc(p.parent_category)}`:""}${p.child_category?`　└ ${esc(p.child_category)}`:""}${p.record_date?`<br>📅 ${esc(p.record_date)}`:""}</div>
@@ -422,7 +422,7 @@ function updateSearchHint(){
   $("searchHint").textContent=hint;
 }
 
-function setTab(t){currentTab=t;page=0;render()}
+function setTab(t){currentTab=t;page=0;updateTabButtons();render()}
 async function renderVendors(){
   if(appOnline){
     const r=await sb.from("vendors").select("id,name,phone,address,contact_name,note,user_id").order("name");
@@ -440,9 +440,12 @@ async function renderVendors(){
   ${rows.map(v=>`<div class="card section" data-vendor-card="${esc(v.id)}"><div class="row"><div><h3>🏭 ${esc(v.name)}</h3><div class="meta">${esc(v.phone||"未填電話")}</div></div><div class="actions"><button class="secondary" onclick="searchVendor('${v.id}')">查看商品</button><button class="danger" onclick="removeVendor('${v.id}')">刪除</button></div></div></div>`).join("")||`<div class="card empty">尚未建立廠商</div>`}</div>`;
 }
 function searchVendor(id){
-  $("search").value=""; smartQuery=""; smartFilters=null; searchMode="normal";
+  $("search").value="";
+  smartQuery=""; smartFilters=null; searchMode="normal";
   if($("smartSummary")){ $("smartSummary").classList.add("hidden"); $("smartSummary").textContent=""; }
-  productFilters.vendor=id; currentTab="products"; page=0; render().catch(e=>setAppMessage(e.message));
+  productFilters.vendor=id; currentTab="products"; page=0;
+  updateTabButtons();
+  render().then(()=>{ if($("search")) $("search").value=""; }).catch(e=>setAppMessage(e.message));
 }
 function categoryDescendantIds(rootId){
   const ids=[rootId];let changed=true;
@@ -637,7 +640,7 @@ $("cancelDocument").onclick=()=>$("documentDialog").close();
 $("createDocument").onclick=async()=>{const f=$("documentPhoto").files[0];if(!f)return alert("請先選擇貨單照片");const id=crypto.randomUUID(),ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg",path=`${session.user.id}/documents/${id}.${ext}`;const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg"});if(up.error)return alert("貨單照片上傳失敗："+up.error.message);const ins=await sb.from("purchase_documents").insert({id,status:"待辨識",document_date:today,image_path:path});if(ins.error)return alert("建立貨單失敗："+ins.error.message);$("documentDialog").close();await render();alert("貨單已儲存。目前先完成貨單雲端保存；貨單 AI 辨識可再接後端功能。")};
 
 function updateTabButtons(){document.querySelectorAll(".tabs button").forEach(b=>{b.classList.toggle("active",b.dataset.tab===currentTab);});}
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;page=0;updateTabButtons();render()});
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 updateTabButtons();
 $("search").oninput=()=>{page=0;searchMode="normal";smartQuery="";smartFilters=null;if($("smartSummary")){$("smartSummary").classList.add("hidden");$("smartSummary").textContent="";}if(currentTab!=="products"){currentTab="products";updateTabButtons();}updateSearchHint();loadProducts().catch(e=>setAppMessage(e.message))};
 $("search").addEventListener("change",()=>saveRecentSearch($("search").value));
@@ -682,9 +685,14 @@ async function detectNetwork(){
     const timer=setTimeout(()=>controller.abort(),2200);
     try{
       // DevTools 的 Offline 模式與某些瀏覽器環境下，navigator.onLine 可能仍為 true。
-      // 直接探測 Supabase 來源，才能判斷應該走雲端還是離線資料。
-      await fetch(CONFIG.url+'/',{method:'GET',mode:'no-cors',cache:'no-store',signal:controller.signal});
-      appOnline=true;
+      // 探測 Supabase 的 PostgREST 端點，不再請求專案根網址（根網址會回 404）。
+      const probe=await fetch(CONFIG.url+'/rest/v1/',{
+        method:'GET',
+        headers:{apikey:CONFIG.key,Authorization:'Bearer '+CONFIG.key},
+        cache:'no-store',
+        signal:controller.signal
+      });
+      appOnline=probe.ok || probe.status===401 || probe.status===403;
     }catch(_){
       appOnline=false;
     }finally{
@@ -872,7 +880,11 @@ async function loadProducts(){
   const from=page*PAGE_SIZE,to=from+PAGE_SIZE-1;
   const {data,error,count}=await query.order("name").range(from,to);
   if(error)throw new Error("讀取商品清單失敗："+error.message);
-  totalCount=count||0;productCache=data||[];await cacheRows("products",productCache);
+  const deletedIds=window.__deletedProductIds||new Set();
+  const freshData=(data||[]).filter(p=>!deletedIds.has(String(p.id)));
+  totalCount=Math.max(0,Number(count||0)-Math.min(Number(count||0),Number((data||[]).length-freshData.length)));
+  productCache=freshData;
+  await cacheRows("products",productCache);
   const rows=await Promise.all(productCache.map(async p=>({...p,_photo:await signedPhoto(p.photo_path)})));
   renderProducts(rows);
 }
@@ -1058,6 +1070,9 @@ async function removeProductOfflineOrOnline(id){
 
     // 重新抓取最新商品列表；不走舊本機 cache。
     page=0;
+    // 標記本次刪除的 ID，避免舊的並行結果把它重新畫回來。
+    window.__deletedProductIds = window.__deletedProductIds || new Set();
+    window.__deletedProductIds.add(productId);
     await loadProducts();
 
   }catch(e){
