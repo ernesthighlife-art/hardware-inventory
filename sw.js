@@ -1,4 +1,4 @@
-const CACHE = 'inventory-v5';
+const CACHE = 'inventory-v6';
 const APP_SHELL = ['./', './index.html', './manifest.json'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(c => c.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
