@@ -991,9 +991,20 @@ async function saveVendorOfflineOrOnline(){
     vendorCache=[...vendorCache.filter(v=>v.id!==r.data.id),r.data]
       .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"zh-TW"));
     $("vendorDialog").close();
-    await renderVendors();
+    if(reviewAddingVendor){
+      reviewAddingVendor=false;
+      const rv=$("reviewVendor");
+      if(rv){
+        rv.innerHTML=`<option value="">未設定廠商</option>`+vendorCache.map(v=>`<option value="${v.id}" ${v.id===r.data.id?'selected':''}>${esc(v.name)}</option>`).join("");
+        rv.value=r.data.id;
+      }
+      if($("reviewVendorName"))$("reviewVendorName").value=r.data.name||"";
+      if($("purchaseReviewDialog")&&!$("purchaseReviewDialog").open)$("purchaseReviewDialog").showModal();
+    }else{
+      await renderVendors();
+    }
     await loadStats();
-  }catch(e){alert("新增廠商失敗："+(e.message||String(e)))}
+  }catch(e){reviewAddingVendor=false;alert("新增廠商失敗："+(e.message||String(e)))}
 }
 $("saveVendor").onclick=saveVendorOfflineOrOnline;
 
@@ -1226,6 +1237,7 @@ async function deletePurchaseDocument(documentId, isConfirmed){
 }
 
 let currentReviewDocumentId=null;
+let reviewAddingVendor=false;
 let purchaseReviewState=new Map();
 function setReviewItemState(id,patch){purchaseReviewState.set(id,{...(purchaseReviewState.get(id)||{removed:false,confirmed:false}),...patch});}
 function getReviewItemState(id){return purchaseReviewState.get(id)||{removed:false,confirmed:false};}
@@ -1239,10 +1251,16 @@ async function openPurchaseReview(documentId){
   const r=await sb.from('purchase_documents').select('id,user_id,vendor_id,document_number,document_date,image_path,status,ai_summary,ai_raw,created_at,updated_at').eq('id',documentId).single();if(r.error)throw new Error('讀取貨單失敗：'+r.error.message);
   const ir=await sb.from('purchase_document_items').select('id,document_id,user_id,product_id,raw_name,raw_spec,quantity,unit,unit_price,match_status,match_confidence').eq('document_id',documentId).order('created_at');if(ir.error)throw new Error('讀取貨單項目失敗：'+ir.error.message);
   const d=r.data,items=ir.data||[];let raw={};try{raw=typeof d.ai_raw==='string'?JSON.parse(d.ai_raw):(d.ai_raw||{})}catch{}purchaseReviewState=new Map();
-  const suggestedVendor=d.vendor_id||raw.suggested_vendor_id||'';
-  $('purchaseReviewHeader').innerHTML=`<strong>📄 ${esc(d.document_number||'未命名貨單')}</strong><br>日期：${esc(d.document_date||today)}　合計：${raw.total_amount!=null?fmt(raw.total_amount):'未辨識'}<br>${esc(d.ai_summary||'AI 已完成辨識，請逐筆確認。')}<div class="review-note">每一筆都可以單獨「✅ 確認」或「🗑 刪除」，刪除的項目不會入庫。</div>`;
+  const aiVendorName=String(raw.vendor_name||raw.suggested_vendor_name||raw.vendor||'').trim();
+  let suggestedVendor=d.vendor_id||raw.suggested_vendor_id||'';
+  if(!suggestedVendor&&aiVendorName){
+    const normalized=aiVendorName.toLowerCase().replace(/\s+/g,'');
+    const matched=vendorCache.find(v=>String(v.name||'').toLowerCase().replace(/\s+/g,'')===normalized);
+    if(matched)suggestedVendor=matched.id;
+  }
+  $('purchaseReviewHeader').innerHTML=`<strong>📄 ${esc(d.document_number||'未命名貨單')}</strong><br>日期：${esc(d.document_date||today)}　合計：${raw.total_amount!=null?fmt(raw.total_amount):'未辨識'}<br>${esc(d.ai_summary||'AI 已完成辨識，請逐筆確認。')}<div class="review-note">每一筆都可以單獨「✅ 確認」或「🗑 刪除」，刪除的項目不會入庫。AI 辨識到的廠商與銷售單位都可以再修改。</div>`;
   const vendorOpts=`<option value="">未設定廠商</option>`+vendorCache.map(v=>`<option value="${v.id}" ${v.id===suggestedVendor?'selected':''}>${esc(v.name)}</option>`).join('');
-  $('purchaseReviewVendor').innerHTML=`<div><label>貨單廠商</label><select id="reviewVendor">${vendorOpts}</select></div><div><label>貨單日期</label><input id="reviewDocDate" type="date" value="${esc(d.document_date||today)}"></div>`;
+  $('purchaseReviewVendor').innerHTML=`<div><label>AI 辨識廠商</label><div class="inline-actions"><input id="reviewVendorName" type="text" value="${esc(aiVendorName)}" placeholder="AI 辨識到的廠商名稱"><button type="button" class="secondary mini" id="reviewAddVendor">＋新增廠商</button></div></div><div><label>套用廠商</label><select id="reviewVendor">${vendorOpts}</select><label style="margin-top:8px">貨單日期</label><input id="reviewDocDate" type="date" value="${esc(d.document_date||today)}"></div>`;
   const htmlItems=items.map((it,idx)=>{
     const meta=(raw.items||[])[idx]||{},candidates=Array.isArray(meta.candidates)?meta.candidates:[],chosen=it.product_id||meta.suggested_product_id||'';
     const pOpts=`<option value="">＋ 建立新商品</option>`+candidates.map(c=>`<option value="${c.id}" ${c.id===chosen?'selected':''}>${esc(c.name||'')}${c.spec?'｜'+esc(c.spec):''}</option>`).join('');
@@ -1252,9 +1270,10 @@ async function openPurchaseReview(documentId){
       <div class="row"><strong>第 ${idx+1} 筆</strong><span class="badge review-status ${state.confirmed?'ok':'low'}">${state.confirmed?'✅ 已確認':(it.match_status||'待確認')}${it.match_confidence!=null?` ${Math.round(Number(it.match_confidence)*100)}%`:''}</span></div>
       <div class="two"><div><label>原貨單品名</label><input class="ri-name" value="${esc(it.raw_name||'')}"></div><div><label>規格</label><input class="ri-spec" value="${esc(it.raw_spec||'')}"></div></div>
       <div class="two"><div><label>對應商品</label><select class="ri-product">${pOpts}</select></div><div><label>數量</label><input class="ri-qty" type="number" min="0" step="1" value="${Number(it.quantity||0)}"></div></div>
-      <div class="two"><div><label>單位名稱</label><input class="ri-unit" value="${esc(it.unit||meta.unit||'個')}"></div><div><label>進貨成本</label><input class="ri-cost" type="number" min="0" step="0.01" value="${esc(price)}"></div></div>
+      <div class="two"><div><label>進貨單位</label><input class="ri-purchase-unit" value="${esc(it.unit||meta.purchase_unit||'個')}"></div><div><label>銷售單位</label><input class="ri-sale-unit" value="${esc(meta.suggested_sale_unit||meta.sale_unit||'個')}"></div></div>
+      <div class="two"><div><label>進貨成本</label><input class="ri-cost" type="number" min="0" step="0.01" value="${esc(price)}"></div><div><label>售價</label><input class="ri-price" type="number" min="0" step="0.01" value="${esc(meta.suggested_price??'')}" placeholder="可之後再填"></div></div>
       <div class="two"><div><label>母項目</label><input class="ri-parent" list="reviewParentOptions" value="${esc(parent)}" placeholder="例如：農業用品"></div><div><label>子項目</label><input class="ri-child" list="reviewChildOptions" value="${esc(child)}" placeholder="例如：抑制蓆"></div></div>
-      <div class="two"><div><label>所在位置</label><input class="ri-location" list="reviewLocationOptions" value="${esc(loc)}" placeholder="例如：A01-03"></div><div><label>售價</label><input class="ri-price" type="number" min="0" step="0.01" value="${esc(meta.suggested_price??'')}" placeholder="可之後再填"></div></div>
+      <div><label>所在位置</label><input class="ri-location" list="reviewLocationOptions" value="${esc(loc)}" placeholder="例如：A01-03"></div>
       <div class="small" style="margin-top:8px">${esc(chosen?'AI 建議已找到相近商品，請確認。':'AI 建議：目前沒有足夠接近的既有商品，可確認後建立新商品。')} ${esc(meta.category_reason||'')}</div>
       <div class="review-actions"><button type="button" class="secondary" data-review-confirm="${it.id}">✅ 確認此筆</button><button type="button" class="danger" data-review-remove="${it.id}">🗑 刪除此筆</button></div>
     </div>`;
@@ -1291,6 +1310,14 @@ function confirmPurchaseReviewItem(itemId){
   const btn=card.querySelector("[data-review-confirm]");if(btn){btn.classList.add("is-confirmed");btn.textContent="✅ 已確認";btn.disabled=true;}
   updateReviewSummary();
 }
+async function openReviewVendorAdd(){
+  if(!appOnline)return alert('新增廠商目前需要網路。');
+  const seed=(($('reviewVendorName')?.value||'').trim())||'AI 辨識廠商';
+  reviewAddingVendor=true;
+  openVendor();
+  $('vendorName').value=seed;
+}
+
 async function ensureVendorForReview(name,id){
   if(id)return id;
   const clean=String(name||"").trim(); if(!clean)return null;
@@ -1305,8 +1332,8 @@ async function confirmPurchaseReview(){
   const docR=await sb.from('purchase_documents').select('*').eq('id',currentReviewDocumentId).single();if(docR.error)return alert('讀取貨單失敗：'+docR.error.message);
   const active=[...document.querySelectorAll('.purchase-item')].filter(el=>!el.classList.contains('review-item-removed'));if(!active.length)return alert('沒有可入庫的貨單項目。');
   const pending=active.filter(el=>!getReviewItemState(el.dataset.itemId).confirmed);if(pending.length)return alert(`還有 ${pending.length} 筆商品尚未確認，請逐筆按「✅ 確認此筆」。`);
-  let vendorId=$("reviewVendor").value||null;if(!vendorId){let raw={};try{raw=typeof docR.data.ai_raw==='string'?JSON.parse(docR.data.ai_raw||'{}'):docR.data.ai_raw||{}}catch{}if(raw.vendor_name)vendorId=await ensureVendorForReview(raw.vendor_name,null);}
-  const rows=[];for(const el of active){const parent=el.querySelector('.ri-parent').value.trim()||null,child=el.querySelector('.ri-child').value.trim()||null,loc=el.querySelector('.ri-location').value.trim()||null;const catRel=await ensureCategoryIds(parent,child),locRel=await ensureLocationId(loc);rows.push({item_id:el.dataset.itemId,product_id:el.querySelector('.ri-product').value||null,name:el.querySelector('.ri-name').value.trim(),spec:el.querySelector('.ri-spec').value.trim()||null,quantity:Number(el.querySelector('.ri-qty').value||0),unit:el.querySelector('.ri-unit').value.trim()||'個',unit_price:Number(el.querySelector('.ri-cost').value||0),cost:Number(el.querySelector('.ri-cost').value||0),price:Number(el.querySelector('.ri-price').value||0),parent_category:parent,child_category:child,location:loc,vendor_id:vendorId,category_id:catRel.category_id||null,location_id:locRel.location_id||null});}
+  let vendorId=$("reviewVendor").value||null;if(!vendorId){const typedVendor=$("reviewVendorName")?.value?.trim();if(typedVendor)vendorId=await ensureVendorForReview(typedVendor,null);else{let raw={};try{raw=typeof docR.data.ai_raw==='string'?JSON.parse(docR.data.ai_raw||'{}'):docR.data.ai_raw||{}}catch{}const aiName=raw.vendor_name||raw.suggested_vendor_name;if(aiName)vendorId=await ensureVendorForReview(aiName,null);}}
+  const rows=[];for(const el of active){const parent=el.querySelector('.ri-parent').value.trim()||null,child=el.querySelector('.ri-child').value.trim()||null,loc=el.querySelector('.ri-location').value.trim()||null;const purchaseUnit=el.querySelector('.ri-purchase-unit').value.trim()||'個',saleUnit=el.querySelector('.ri-sale-unit').value.trim()||purchaseUnit;const catRel=await ensureCategoryIds(parent,child),locRel=await ensureLocationId(loc);rows.push({item_id:el.dataset.itemId,product_id:el.querySelector('.ri-product').value||null,name:el.querySelector('.ri-name').value.trim(),spec:el.querySelector('.ri-spec').value.trim()||null,quantity:Number(el.querySelector('.ri-qty').value||0),unit:saleUnit,purchase_unit:purchaseUnit,sale_unit:saleUnit,unit_price:Number(el.querySelector('.ri-cost').value||0),cost:Number(el.querySelector('.ri-cost').value||0),price:Number(el.querySelector('.ri-price').value||0),parent_category:parent,child_category:child,location:loc,vendor_id:vendorId,category_id:catRel.category_id||null,location_id:locRel.location_id||null});}
   if(rows.some(x=>!x.name||x.quantity<=0))return alert('請確認每筆商品名稱與數量。');$("confirmPurchaseReview").disabled=true;
   try{const rpc=await sb.rpc('confirm_purchase_document',{p_document_id:currentReviewDocumentId,p_items:rows});if(rpc.error)throw rpc.error;$("purchaseReviewDialog").close();alert(`✅ 貨單已確認，共 ${rows.length} 筆商品完成入庫。`);await render();}
   catch(e){alert('確認入庫失敗：'+(e.message||String(e)))}finally{$("confirmPurchaseReview").disabled=false}
@@ -1327,6 +1354,7 @@ document.addEventListener("click",async(e)=>{
   if(aiBtn){aiBtn.disabled=true;await runPurchaseAI(aiBtn.dataset.docAi);return;}
   const reviewBtn=e.target.closest("[data-doc-review]");
   if(reviewBtn){currentReviewDocumentId=reviewBtn.dataset.docReview;try{await openPurchaseReview(currentReviewDocumentId)}catch(err){alert(err.message||String(err))}return;}
+  if(e.target.closest("#reviewAddVendor")){await openReviewVendorAdd();return;}
   const add=e.target.closest("#addDocumentBtn");
   if(add){const dlg=$("documentDialog");if(dlg){if(typeof dlg.showModal==="function"){if(!dlg.open)dlg.showModal()}else dlg.setAttribute("open","open");}}
 });
