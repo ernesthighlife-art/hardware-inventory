@@ -424,19 +424,20 @@ function updateSearchHint(){
 
 function setTab(t){currentTab=t;page=0;render()}
 async function renderVendors(){
-  // 線上時每次進入廠商頁都直接重新抓雲端資料，避免「數量已變、列表還是舊資料」。
   if(appOnline){
-    const r=await sb.from("vendors")
-      .select("id,name,phone,address,contact_name,note,user_id")
-      .order("name");
+    const r=await sb.from("vendors").select("id,name,phone,address,contact_name,note,user_id").order("name");
     if(r.error)throw new Error("讀取廠商資料失敗："+r.error.message);
-    vendorCache=r.data||[];
+    vendorCache=Array.isArray(r.data)?r.data:[];
+    // 以雲端最新清單覆蓋本機快取：刪掉的廠商不再殘留。
+    const old=await idbGetAll("vendors").catch(()=>[]), ids=new Set(vendorCache.map(v=>v.id));
+    for(const v of old){if(v?.id&&!ids.has(v.id))await idbDelete("vendors",v.id).catch(()=>{});}
     await cacheRows("vendors",vendorCache);
   }else{
     await loadLocalMeta();
   }
-  $("app").innerHTML=`<div class="addbar"><div class="hint">${fmt(vendorCache.length)} 家廠商</div><button class="primary" onclick="openVendor()">＋ 新增廠商</button></div><div class="list">
-  ${vendorCache.map(v=>`<div class="card section"><div class="row"><div><h3>🏭 ${esc(v.name)}</h3><div class="meta">${esc(v.phone||"未填電話")}</div></div><div class="actions"><button class="secondary" onclick="searchVendor('${v.id}')">查看商品</button><button class="danger" onclick="removeVendor('${v.id}')">刪除</button></div></div></div>`).join("")||`<div class="card empty">尚未建立廠商</div>`}</div>`;
+  const rows=vendorCache.slice();
+  $("app").innerHTML=`<div class="addbar"><div class="hint">${fmt(rows.length)} 家廠商</div><button class="primary" onclick="openVendor()">＋ 新增廠商</button></div><div class="list">
+  ${rows.map(v=>`<div class="card section" data-vendor-card="${esc(v.id)}"><div class="row"><div><h3>🏭 ${esc(v.name)}</h3><div class="meta">${esc(v.phone||"未填電話")}</div></div><div class="actions"><button class="secondary" onclick="searchVendor('${v.id}')">查看商品</button><button class="danger" onclick="removeVendor('${v.id}')">刪除</button></div></div></div>`).join("")||`<div class="card empty">尚未建立廠商</div>`}</div>`;
 }
 function searchVendor(id){
   $("search").value=""; smartQuery=""; smartFilters=null; searchMode="normal";
@@ -455,7 +456,7 @@ function locationDescendantIds(rootId){
 }
 async function removeVendor(id){
   const v=vendorCache.find(x=>x.id===id);if(!v)return;
-  if(!confirm(`確定刪除廠商「${v.name}」？\n只解除這一個廠商與商品的關聯，不會刪除其他廠商或商品。`))return;
+  if(!confirm(`確定刪除廠商「${v.name}」？\n只解除這一個廠商與商品的關聯，不會刪除商品或其他廠商。`))return;
   try{
     if(!appOnline){
       const local=await idbGetAll('products').catch(()=>[]);
@@ -463,29 +464,29 @@ async function removeVendor(id){
       await idbDelete('vendors',id);
       await enqueue('vendor_delete',{id});
       vendorCache=vendorCache.filter(x=>x.id!==id);
-      productFilters.vendor='';
       productCache=productCache.map(p=>p.vendor_id===id?{...p,vendor_id:null}:p);
+      productFilters.vendor='';
       await renderVendors();
       return;
     }
-
-    // 由資料庫安全函式刪除「指定」廠商；不直接修改其他廠商的商品。
     const r=await sb.rpc('delete_vendor_safe',{p_vendor_id:id});
     if(r.error)throw r.error;
-
-    // 同步刪除本機快取中的同一筆廠商，不碰其他廠商。
+    const check=await sb.from('vendors').select('id').eq('id',id).maybeSingle();
+    if(check.error)throw check.error;
+    if(check.data)throw new Error('廠商尚未從雲端移除，請稍後再試。');
+    const localProducts=await idbGetAll('products').catch(()=>[]);
+    for(const p of localProducts.filter(p=>p.vendor_id===id)){p.vendor_id=null;await cacheProduct(p);}
+    productCache=productCache.map(p=>p.vendor_id===id?{...p,vendor_id:null}:p);
     await idbDelete('vendors',id).catch(()=>{});
     vendorCache=vendorCache.filter(x=>x.id!==id);
-    productCache=productCache.map(p=>p.vendor_id===id?{...p,vendor_id:null}:p);
     productFilters.vendor='';
-
-    // 重新從雲端抓廠商列表，避免列表顯示舊資料或漏掉剛新增的廠商。
     await renderVendors();
-
-    // 商品列表若目前可見，重新從雲端抓一次，確保只解除被刪廠商的關聯。
-    if(currentTab==="products")await loadProducts();
+    if(currentTab==='products')await loadProducts();
     await loadStats();
-  }catch(e){alert('刪除廠商失敗：'+(e.message||String(e)))}
+  }catch(e){
+    alert('刪除廠商失敗：'+(e.message||String(e)));
+    await renderVendors().catch(()=>{});
+  }
 }
 function renderCategories(){
   const top=categoryCache.filter(c=>!c.parent_id),children={};categoryCache.forEach(c=>(children[c.parent_id]??=[]).push(c));
@@ -1029,7 +1030,11 @@ async function renderDocuments(){
   if(appOnline){
     const r=await sb.from("purchase_documents").select("id,user_id,vendor_id,document_number,document_date,image_path,status,ai_summary,ai_raw,created_at,updated_at").order("created_at",{ascending:false}).limit(100);
     if(r.error)throw new Error("讀取貨單失敗："+r.error.message);
-    docs=r.data||[]; for(const d of docs)await cacheDocument(d);
+    docs=(r.data||[]).filter(d=>d.status!=="已刪除");
+    const serverIds=new Set(docs.map(d=>d.id));
+    const cachedDocs=await idbGetAll("documents").catch(()=>[]);
+    for(const old of cachedDocs){if(old?.id&&!serverIds.has(old.id))await idbDelete("documents",old.id).catch(()=>{});}
+    for(const d of docs)await cacheDocument(d);
   }else{
     docs=(await idbGetAll("documents")).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
   }
@@ -1093,40 +1098,41 @@ async function runPurchaseAI(documentId){
 }
 
 async function deletePurchaseDocument(documentId, isConfirmed){
-  const card = document.querySelector(`[data-doc-delete="${CSS.escape(documentId)}"]`)?.closest('.card.section');
-  const msg = isConfirmed
-    ? "這張貨單已經入庫。\n\n確定刪除貨單紀錄？\n（只刪除貨單與辨識明細，不會回扣庫存）"
-    : "確定刪除這張 AI 貨單？\n刪除後會連同辨識明細一起移除，之後可以重新拍照辨識。";
-  if(!confirm(msg)) return false;
+  const card=document.querySelector(`[data-doc-delete="${CSS.escape(documentId)}"]`)?.closest('.card.section');
+  const msg=isConfirmed
+    ? "這張貨單已經入庫。\n\n確定刪除貨單紀錄？\n（只刪除貨單，不會回扣已入庫的庫存）"
+    : "確定刪除這張 AI 貨單？\n刪除後這張貨單會直接從列表消失，之後可以重新拍照辨識。";
+  if(!confirm(msg))return false;
   try{
     if(!appOnline){
       const d=(await idbGetAll("documents")).find(x=>x.id===documentId);
       await idbDelete("documents",documentId);
       await enqueue("document_delete",{id:documentId,image_path:d?.image_path||null});
       if(currentReviewDocumentId===documentId){currentReviewDocumentId=null;try{$("purchaseReviewDialog").close()}catch{}}
-      if(card) card.remove();
-      await render();
+      if(card)card.remove();
+      await renderDocuments();
       return true;
     }
+    const doc=await sb.from("purchase_documents").select("id,image_path,status").eq("id",documentId).eq("user_id",session.user.id).maybeSingle();
+    if(doc.error)throw doc.error;
+    if(!doc.data)throw new Error("找不到這張貨單，可能已經刪除。");
     const items=await sb.from("purchase_document_items").delete().eq("document_id",documentId).eq("user_id",session.user.id);
-    if(items.error) throw items.error;
-    const doc=await sb.from("purchase_documents").select("image_path").eq("id",documentId).eq("user_id",session.user.id).single();
-    if(doc.error) throw doc.error;
-    const del=await sb.from("purchase_documents").delete().eq("id",documentId).eq("user_id",session.user.id);
-    if(del.error) throw del.error;
-    if(doc.data?.image_path) await sb.storage.from(CONFIG.bucket).remove([doc.data.image_path]).catch(()=>{});
+    if(items.error)throw items.error;
+    const del=await sb.from("purchase_documents").delete().eq("id",documentId).eq("user_id",session.user.id).select("id");
+    if(del.error)throw del.error;
+    if(!del.data?.length)throw new Error("貨單沒有成功刪除，請檢查資料庫 DELETE 權限。");
+    if(doc.data.image_path)await sb.storage.from(CONFIG.bucket).remove([doc.data.image_path]).catch(()=>{});
     await idbDelete("documents",documentId).catch(()=>{});
     if(currentReviewDocumentId===documentId){currentReviewDocumentId=null;try{$("purchaseReviewDialog").close()}catch{}}
-    // 成功刪除後立即從畫面移除，不保留「已刪除」紀錄或按鈕。
-    if(card) card.remove();
-    await render();
+    if(card)card.remove();
+    await renderDocuments();
     return true;
   }catch(e){
     alert("刪除貨單失敗："+(e.message||String(e)));
+    await renderDocuments().catch(()=>{});
     return false;
   }
 }
-
 
 let currentReviewDocumentId=null;
 let purchaseReviewState=new Map();
