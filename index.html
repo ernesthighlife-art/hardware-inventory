@@ -984,11 +984,18 @@ async function renderDocuments(){
   }
   const vName=id=>vendorCache.find(v=>v.id===id)?.name||"未設定廠商";
   const cards=docs.map(d=>{
-    const action=d.status==="待確認"?`<button class="primary" data-doc-review="${d.id}">✅ 檢視並確認</button>`:
-      d.status==="已確認"?`<button class="secondary" data-doc-review="${d.id}">查看辨識結果</button>`:
-      (d.status==="待辨識"&&appOnline)?`<button class="primary" data-doc-ai="${d.id}">🧠 開始 AI 辨識</button>`:
-      `<span class="muted">${d._local?"待同步":"等待處理"}</span>`;
-    return `<div class="card section"><div class="row"><div><strong>📷 ${esc(d.document_number||"未命名貨單")}</strong><div class="meta">${esc(d.document_date||"")}　🏭 ${esc(vName(d.vendor_id))}<br>狀態：${esc(d.status||"待辨識")}${d._local?"　（待同步）":""}</div></div><div>${action}</div></div>${d.ai_summary?`<div class="notice" style="margin-top:10px">${esc(d.ai_summary)}</div>`:""}</div>`;
+    let action="";
+    if(d.status==="待確認"){
+      action=`<div class="review-actions"><button class="primary" data-doc-review="${d.id}">✅ 檢視並確認</button><button class="secondary" data-doc-ai="${d.id}">🧠 重新辨識</button><button class="danger" data-doc-delete="${d.id}">🗑 刪除貨單</button></div>`;
+    }else if(d.status==="已確認"){
+      action=`<div class="review-actions"><button class="secondary" data-doc-review="${d.id}">查看辨識結果</button><button class="danger" data-doc-delete="${d.id}" data-doc-confirmed="1">🗑 刪除貨單</button></div>`;
+    }else if(d.status==="待辨識"&&appOnline){
+      action=`<div class="review-actions"><button class="primary" data-doc-ai="${d.id}">🧠 開始 AI 辨識</button><button class="danger" data-doc-delete="${d.id}">🗑 刪除貨單</button></div>`;
+    }else{
+      action=`<div class="review-actions"><span class="muted">${d._local?"待同步":"等待處理"}</span><button class="danger" data-doc-delete="${d.id}">🗑 刪除貨單</button></div>`;
+    }
+    const safeDeleteNote=d.status==="已確認"?`<div class="small muted" style="margin-top:8px">此貨單已入庫；刪除只會刪除貨單紀錄，不會回扣庫存。</div>`:"";
+    return `<div class="card section"><div class="row"><div><strong>📷 ${esc(d.document_number||"未命名貨單")}</strong><div class="meta">${esc(d.document_date||"")}　🏭 ${esc(vName(d.vendor_id))}<br>狀態：${esc(d.status||"待辨識")}${d._local?"　（待同步）":""}</div></div><div>${action}</div></div>${d.ai_summary?`<div class="notice" style="margin-top:10px">${esc(d.ai_summary)}</div>`:""}${safeDeleteNote}</div>`;
   }).join("");
   $("app").innerHTML=`<div class="addbar"><div class="hint">📷 拍照後會自動送到 AI 辨識；辨識完成後先確認分類、廠商、位置與價格，再一次入庫。</div><button class="primary" id="addDocumentBtn" type="button">＋ 新增貨單</button></div><div class="list">${cards||`<div class="card empty">尚無貨單</div>`}</div>`;
 }
@@ -1031,6 +1038,34 @@ async function runPurchaseAI(documentId){
     console.error("貨單 AI 辨識失敗",e);
     alert("AI 辨識失敗："+(e.message||String(e))+"\n你可以稍後再按「開始 AI 辨識」。");
     await render();
+  }
+}
+
+async function deletePurchaseDocument(documentId, isConfirmed){
+  if(!confirm(isConfirmed?"這張貨單已經入庫。\n\n確定刪除貨單紀錄？\n（只刪除貨單與辨識明細，不會回扣庫存）":"確定刪除這張 AI 貨單？\n刪除後會連同辨識明細一起移除，之後可以重新拍照辨識。"))return;
+  try{
+    if(!appOnline){
+      const d=(await idbGetAll("documents")).find(x=>x.id===documentId);
+      if(d?.image_path){}
+      await idbDelete("documents",documentId);
+      await enqueue("document_delete",{id:documentId,image_path:d?.image_path||null});
+      await render();
+      alert("✅ 已從本機刪除貨單。恢復網路後會同步刪除雲端貨單。");
+      return;
+    }
+    const items=await sb.from("purchase_document_items").delete().eq("document_id",documentId).eq("user_id",session.user.id);
+    if(items.error)throw items.error;
+    const doc=await sb.from("purchase_documents").select("image_path").eq("id",documentId).eq("user_id",session.user.id).single();
+    if(doc.error)throw doc.error;
+    const del=await sb.from("purchase_documents").delete().eq("id",documentId).eq("user_id",session.user.id);
+    if(del.error)throw del.error;
+    if(doc.data?.image_path)await sb.storage.from(CONFIG.bucket).remove([doc.data.image_path]).catch(()=>{});
+    await idbDelete("documents",documentId).catch(()=>{});
+    if(currentReviewDocumentId===documentId){currentReviewDocumentId=null;try{$("purchaseReviewDialog").close()}catch{}}
+    await render();
+    alert("✅ AI 貨單已刪除。之後可以重新上傳同一張貨單進行辨識，不會因為刪除而重複增加庫存。");
+  }catch(e){
+    alert("刪除貨單失敗："+(e.message||String(e)));
   }
 }
 
@@ -1111,6 +1146,8 @@ $("confirmPurchaseReview").onclick=confirmPurchaseReview;
 document.addEventListener("click",async(e)=>{
   const rc=e.target.closest("[data-review-confirm]");if(rc){confirmPurchaseReviewItem(rc.dataset.reviewConfirm);return;}
   const rr=e.target.closest("[data-review-remove]");if(rr){await removePurchaseReviewItem(rr.dataset.reviewRemove);return;}
+  const delDoc=e.target.closest("[data-doc-delete]");
+  if(delDoc){await deletePurchaseDocument(delDoc.dataset.docDelete,delDoc.dataset.docConfirmed==="1");return;}
   const aiBtn=e.target.closest("[data-doc-ai]");
   if(aiBtn){aiBtn.disabled=true;await runPurchaseAI(aiBtn.dataset.docAi);return;}
   const reviewBtn=e.target.closest("[data-doc-review]");
@@ -1153,6 +1190,16 @@ async function syncOne(item){
     const r=await sb.from("purchase_documents").upsert(item.payload,{onConflict:"id"}).select("id,user_id,vendor_id,document_number,document_date,image_path,status,ai_summary,ai_raw,created_at,updated_at").single();if(r.error)throw r.error;await cacheDocument(r.data);await idbDelete("queue",item.id);if(item.fileKey)await idbDelete("files",item.fileKey);
     try{await sb.functions.invoke(CONFIG.purchaseAIFunction,{body:{document_id:item.payload.id}});}catch(aiErr){console.warn("離線貨單同步後 AI 辨識失敗，稍後可手動重試",aiErr);}
     return;
+  }else if(item.type==="document_delete"){
+    const id=item.payload.id;
+    const doc=await sb.from("purchase_documents").select("image_path").eq("id",id).eq("user_id",user).maybeSingle();
+    if(doc.error)throw doc.error;
+    const di=await sb.from("purchase_document_items").delete().eq("document_id",id).eq("user_id",user);
+    if(di.error)throw di.error;
+    const dd=await sb.from("purchase_documents").delete().eq("id",id).eq("user_id",user);
+    if(dd.error)throw dd.error;
+    if(doc.data?.image_path)await sb.storage.from(CONFIG.bucket).remove([doc.data.image_path]).catch(()=>{});
+    await idbDelete("documents",id).catch(()=>{});
   }
   await idbDelete("queue",item.id);if(item.fileKey)await idbDelete("files",item.fileKey);
 }
