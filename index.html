@@ -735,7 +735,7 @@ async function removeProduct(id){if(!confirm("確定刪除這個商品？"))retu
 
 $("documentPhoto").onchange=e=>{const f=e.target.files[0];if(!f)return;$("docPreview").innerHTML=`<div class="notice">已選擇貨單：${esc(f.name)}</div>`};
 $("cancelDocument").onclick=()=>$("documentDialog").close();
-$("createDocument").onclick=async()=>{const f=$("documentPhoto").files[0];if(!f)return alert("請先選擇貨單照片");const id=crypto.randomUUID(),ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg",path=`${session.user.id}/documents/${id}.${ext}`;const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg"});if(up.error)return alert("貨單照片上傳失敗："+up.error.message);const ins=await sb.from("purchase_documents").insert({id,status:"待辨識",document_date:today,image_path:path});if(ins.error)return alert("建立貨單失敗："+ins.error.message);$("documentDialog").close();await render();alert("貨單已儲存。目前先完成貨單雲端保存；貨單 AI 辨識可再接後端功能。")};
+$("createDocument").onclick=async()=>{const f=$("documentPhoto").files[0];if(!f)return alert("請先選擇貨單照片");const id=crypto.randomUUID(),ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg",path=`${session.user.id}/documents/${id}.${ext}`;const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg"});if(up.error)return alert("貨單照片上傳失敗："+up.error.message);const ins=await sb.from("purchase_documents").insert({id,status:"待辨識",document_date:null,image_path:path});if(ins.error)return alert("建立貨單失敗："+ins.error.message);$("documentDialog").close();await render();alert("貨單已儲存。目前先完成貨單雲端保存；貨單 AI 辨識可再接後端功能。")};
 
 function updateTabButtons(){document.querySelectorAll(".tabs button").forEach(b=>{b.classList.toggle("active",b.dataset.tab===currentTab);});}
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
@@ -1376,7 +1376,7 @@ async function createDocumentOfflineOrOnline(){
   const id=crypto.randomUUID();
   const ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
   const path=`${session.user.id}/documents/${id}.${ext}`;
-  const base={id,user_id:session.user.id,status:"待辨識",document_date:today,image_path:path,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  const base={id,user_id:session.user.id,status:"待辨識",document_date:null,image_path:path,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   try{
     if(!appOnline){
       await cacheDocument({...base,_local:true});
@@ -1473,13 +1473,13 @@ async function openPurchaseReview(documentId){
     const matched=vendorCache.find(v=>String(v.name||'').toLowerCase().replace(/\s+/g,'')===normalized);
     if(matched)suggestedVendor=matched.id;
   }
-  $('purchaseReviewHeader').innerHTML=`<strong>📄 ${esc(d.document_number||'未命名貨單')}</strong><br>日期：${esc(d.document_date||today)}　合計：${raw.total_amount!=null?fmt(raw.total_amount):'未辨識'}<br>${esc(d.ai_summary||'AI 已完成辨識，請逐筆確認。')}<div class="review-note">每一筆都可以單獨「✅ 確認」或「🗑 刪除」，刪除的項目不會入庫。廠商、品牌、搜尋關鍵字與銷售單位都可以再修改。</div>`;
+  $('purchaseReviewHeader').innerHTML=`<strong>📄 ${esc(d.document_number||'未命名貨單')}</strong><br>貨單日期：${esc(d.document_date||"尚未辨識")}　合計：${raw.total_amount!=null?fmt(raw.total_amount):'未辨識'}<br>${esc(d.ai_summary||'AI 已完成辨識，請逐筆確認。')}<div class="review-note">每一筆都可以單獨「✅ 確認」或「🗑 刪除」，刪除的項目不會入庫。廠商、品牌、搜尋關鍵字與銷售單位都可以再修改。</div>`;
   reviewVendorAiName=aiVendorName;
   const aiUnmatched=!suggestedVendor&&aiVendorName;
   const vendorOpts=`<option value="">未設定廠商</option>`+
     (aiUnmatched?`<option value="__ai_vendor__" selected>${esc(aiVendorName)}（AI 辨識）</option>`:'')+
     vendorCache.map(v=>`<option value="${v.id}" ${v.id===suggestedVendor?'selected':''}>${esc(v.name)}</option>`).join('');
-  $('purchaseReviewVendor').innerHTML=`<div><label>廠商</label><div class="inline-actions"><select id="reviewVendor">${vendorOpts}</select><button type="button" class="secondary mini" id="reviewAddVendor">＋新增廠商</button></div><div class="review-note">${aiVendorName?`AI 辨識：${esc(aiVendorName)}；可直接修改或新增廠商。`:'AI 未辨識到廠商，可直接選擇或新增廠商。'}</div></div><div><label>貨單日期</label><input id="reviewDocDate" type="date" value="${esc(d.document_date||today)}"></div>`;
+  $('purchaseReviewVendor').innerHTML=`<div><label>廠商</label><div class="inline-actions"><select id="reviewVendor">${vendorOpts}</select><button type="button" class="secondary mini" id="reviewAddVendor">＋新增廠商</button></div><div class="review-note">${aiVendorName?`AI 辨識：${esc(aiVendorName)}；可直接修改或新增廠商。`:'AI 未辨識到廠商，可直接選擇或新增廠商。'}</div></div><div><label>貨單日期（以貨單印刷日期為準）</label><input id="reviewDocDate" type="date" value="${esc(d.document_date||'')}"></div>`;
   const htmlItems=items.map((it,idx)=>{
     const meta=(raw.items||[])[idx]||{},candidates=Array.isArray(meta.candidates)?meta.candidates:[],chosen=it.product_id||meta.suggested_product_id||'';
     const pOpts=`<option value="">＋ 建立新商品</option>`+candidates.map(c=>`<option value="${c.id}" ${c.id===chosen?'selected':''}>${esc(c.name||'')}${c.spec?'｜'+esc(c.spec):''}</option>`).join('');
@@ -1572,7 +1572,7 @@ async function confirmPurchaseReview(){
   if(vendorId==="__ai_vendor__")vendorId=await ensureVendorForReview(reviewVendorAiName,null);
   const rows=[];for(const el of active){const parent=el.querySelector('.ri-parent').value.trim()||null,child=el.querySelector('.ri-child').value.trim()||null,loc=el.querySelector('.ri-location').value.trim()||null;const purchaseUnit=el.querySelector('.ri-purchase-unit').value.trim()||'個',saleUnit=el.querySelector('.ri-sale-unit').value.trim()||purchaseUnit,conversion=Math.max(0.0001,Number(el.querySelector('.ri-conversion')?.value||1));const catRel=await ensureCategoryIds(parent,child),locRel=await ensureLocationId(loc);rows.push({item_id:el.dataset.itemId,product_id:el.querySelector('.ri-product').value||null,name:el.querySelector('.ri-name').value.trim(),spec:el.querySelector('.ri-spec').value.trim()||null,quantity:Number(el.querySelector('.ri-qty').value||0),unit:saleUnit,purchase_unit:purchaseUnit,sale_unit:saleUnit,purchase_to_sale_qty:conversion,unit_price:Number(el.querySelector('.ri-cost').value||0),cost:Number(el.querySelector('.ri-cost').value||0),price:Number(el.querySelector('.ri-price').value||0),brand:el.querySelector('.ri-brand')?.value.trim()||null,keywords:normalizeKeywords(el.querySelector('.ri-keywords')?.value||''),parent_category:parent,child_category:child,location:loc,vendor_id:vendorId,category_id:catRel.category_id||null,location_id:locRel.location_id||null});}
   if(rows.some(x=>!x.name||x.quantity<=0))return alert('請確認每筆商品名稱與數量。');
-  const docDate=$("reviewDocDate")?.value||docR.data?.document_date||today;
+  const docDate=$("reviewDocDate")?.value||docR.data?.document_date||null;
   $("confirmPurchaseReview").disabled=true;
   try{const rpc=await sb.rpc('confirm_purchase_document',{p_document_id:currentReviewDocumentId,p_items:rows});if(rpc.error)throw rpc.error;
     const dateUpdate=await sb.from("purchase_documents").update({document_date:docDate,updated_at:new Date().toISOString()}).eq("id",currentReviewDocumentId).eq("user_id",session.user.id);if(dateUpdate.error)throw dateUpdate.error;
