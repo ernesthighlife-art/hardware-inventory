@@ -1,9 +1,1 @@
-{
-  "name": "我的庫存",
-  "short_name": "我的庫存",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#f5f0e8",
-  "theme_color": "#cc7a20",
-  "icons": []
-}
+{"name":"我的庫存","short_name":"我的庫存","start_url":"./","display":"standalone","background_color":"#f4efe7","theme_color":"#3b2d24","icons":[]}

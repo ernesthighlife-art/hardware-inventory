@@ -20,7 +20,7 @@ input[type=text],input[type=email],input[type=password],input[type=number],input
 .error{background:var(--dangerBg);color:var(--danger);border-radius:11px;padding:10px 12px;font-size:13px;line-height:1.55;margin-top:10px}.success{background:var(--successBg);color:var(--success);border-radius:11px;padding:10px 12px;font-size:13px;line-height:1.55;margin-top:10px}.loading{background:var(--blueBg);color:#34527e;border-radius:11px;padding:10px 12px;font-size:13px;line-height:1.55;margin-top:10px}
 header{background:linear-gradient(135deg,#352a23,#5a4638);color:#fff;padding:17px 18px 20px;position:sticky;top:0;z-index:10}.header-inner{max-width:1200px;margin:auto}.topline{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .title{font-size:23px;font-weight:850}.subtitle{font-size:12px;color:#eaded3;margin-top:3px}.account{font-size:12px;color:#eaded3;margin-top:5px}.search{width:100%;margin-top:13px;border:0;border-radius:15px;padding:13px 15px;background:#fff;color:#111;outline:none;box-shadow:0 5px 18px rgba(66,48,35,.12)}
-main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}.quick button{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:10px 7px;color:#574b42;font-weight:750}.quick button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+main{max-width:1200px;margin:auto;padding:15px 16px 110px}.quick{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}.quick button{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:10px 7px;color:#574b42;font-weight:750}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:13px}.card{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);border:1px solid rgba(231,221,209,.75)}.stat{padding:14px}.stat .label{color:var(--muted);font-size:12px}.stat strong{display:block;font-size:27px;margin:3px 0}.stat small{color:var(--muted)}
 .tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:12px}.tabs button{border:0;border-radius:12px;background:#fff;padding:10px 5px;font-weight:800;color:#6e6258}.tabs button.active{background:var(--accent);color:#fff;box-shadow:0 3px 10px rgba(199,120,42,.25);transform:translateY(-1px)}
 .toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 11px;color:#62564d;font-size:13px}
@@ -422,19 +422,7 @@ function updateSearchHint(){
   $("searchHint").textContent=hint;
 }
 
-function setTab(t){
-  currentTab=t;
-  page=0;
-  if(t!=="products"){
-    productFilters.vendor="";
-    productFilters.stock=""; productFilters.parent=""; productFilters.child="";
-    if($("search"))$("search").value="";
-    searchMode="normal"; smartQuery=""; smartFilters=null;
-    if($("smartSummary")){ $("smartSummary").classList.add("hidden"); $("smartSummary").textContent=""; }
-  }
-  updateTabButtons();
-  render();
-}
+function setTab(t){currentTab=t;page=0;render()}
 async function renderVendors(){
   if(appOnline){
     const r=await sb.from("vendors").select("id,name,phone,address,contact_name,note,user_id").order("name");
@@ -452,15 +440,9 @@ async function renderVendors(){
   ${rows.map(v=>`<div class="card section" data-vendor-card="${esc(v.id)}"><div class="row"><div><h3>🏭 ${esc(v.name)}</h3><div class="meta">${esc(v.phone||"未填電話")}</div></div><div class="actions"><button class="secondary" onclick="searchVendor('${v.id}')">查看商品</button><button class="danger" onclick="removeVendor('${v.id}')">刪除</button></div></div></div>`).join("")||`<div class="card empty">尚未建立廠商</div>`}</div>`;
 }
 function searchVendor(id){
-  $("search").value="";
-  smartQuery=""; smartFilters=null; searchMode="normal";
+  $("search").value=""; smartQuery=""; smartFilters=null; searchMode="normal";
   if($("smartSummary")){ $("smartSummary").classList.add("hidden"); $("smartSummary").textContent=""; }
-  productFilters.vendor=id;
-  productFilters.stock=""; productFilters.parent=""; productFilters.child="";
-  currentTab="products";
-  page=0;
-  updateTabButtons();
-  render().catch(e=>setAppMessage(e.message));
+  productFilters.vendor=id; currentTab="products"; page=0; render().catch(e=>setAppMessage(e.message));
 }
 function categoryDescendantIds(rootId){
   const ids=[rootId];let changed=true;
@@ -654,11 +636,8 @@ $("documentPhoto").onchange=e=>{const f=e.target.files[0];if(!f)return;$("docPre
 $("cancelDocument").onclick=()=>$("documentDialog").close();
 $("createDocument").onclick=async()=>{const f=$("documentPhoto").files[0];if(!f)return alert("請先選擇貨單照片");const id=crypto.randomUUID(),ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg",path=`${session.user.id}/documents/${id}.${ext}`;const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg"});if(up.error)return alert("貨單照片上傳失敗："+up.error.message);const ins=await sb.from("purchase_documents").insert({id,status:"待辨識",document_date:today,image_path:path});if(ins.error)return alert("建立貨單失敗："+ins.error.message);$("documentDialog").close();await render();alert("貨單已儲存。目前先完成貨單雲端保存；貨單 AI 辨識可再接後端功能。")};
 
-function updateTabButtons(){
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===currentTab));
-  document.querySelectorAll(".quick button[data-quick-tab]").forEach(b=>b.classList.toggle("active",b.dataset.quickTab===currentTab));
-}
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+function updateTabButtons(){document.querySelectorAll(".tabs button").forEach(b=>{b.classList.toggle("active",b.dataset.tab===currentTab);});}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;page=0;updateTabButtons();render()});
 updateTabButtons();
 $("search").oninput=()=>{page=0;searchMode="normal";smartQuery="";smartFilters=null;if($("smartSummary")){$("smartSummary").classList.add("hidden");$("smartSummary").textContent="";}if(currentTab!=="products"){currentTab="products";updateTabButtons();}updateSearchHint();loadProducts().catch(e=>setAppMessage(e.message))};
 $("search").addEventListener("change",()=>saveRecentSearch($("search").value));
@@ -1019,51 +998,72 @@ $("saveMovement").onclick=saveMovementOfflineOrOnline;
 
 async function removeProductOfflineOrOnline(id){
   if(!confirm("確定刪除這個商品？"))return;
+
   const p=await idbGet("products",id)||productCache.find(x=>x.id===id);
+  const card=document.querySelector(`[data-product-id="${CSS.escape(String(id))}"]`);
+
+  // 清理本機佇列中同一商品的新增／修改，避免背景同步把已刪除商品寫回來。
+  async function removeQueuedProductOps(){
+    const q=await getQueue().catch(()=>[]);
+    for(const item of q){
+      if(["product_create","product_update","product_delete"].includes(item.type) && String(item.payload?.id||"")===String(id)){
+        await idbDelete("queue",item.id).catch(()=>{});
+        if(item.fileKey)await idbDelete("files",item.fileKey).catch(()=>{});
+      }
+    }
+  }
+
   try{
     if(!appOnline){
-      await idbDelete("products",id);
-      productCache=productCache.filter(x=>x.id!==id);
-      const queued=await getQueue().catch(()=>[]);
-      for(const q of queued.filter(q=>q.payload?.id===id && ["product_create","product_update","product_delete"].includes(q.type))){
-        await idbDelete("queue",q.id).catch(()=>{});
-        if(q.fileKey)await idbDelete("files",q.fileKey).catch(()=>{});
-      }
+      await idbDelete("products",id).catch(()=>{});
+      productCache=productCache.filter(x=>String(x.id)!==String(id));
+      await removeQueuedProductOps();
       await enqueue("product_delete",{id,photo_path:p?.photo_path||null});
-      document.querySelector(`[data-product-id="${CSS.escape(String(id))}"]`)?.remove();
+      card?.remove();
       await render();
-      alert("已在本機刪除。恢復網路後會同步刪除雲端資料。");
+      alert("已在本機刪除。恢復網路後會同步刪除雲端資料。\n");
       return;
     }
 
+    // 不以 DELETE 的回傳 data 判斷成功與否。
+    // 某些 RLS／返回設定下，資料已刪除但 data 可能為 null，若誤判會重新 render 把舊快取畫回來。
     const r=await sb.from("products")
       .delete()
       .eq("id",id)
-      .eq("user_id",session.user.id)
-      .select("id")
-      .maybeSingle();
-    if(r.error)throw r.error;
-    if(!r.data)throw new Error("商品沒有成功刪除，請檢查 DELETE 權限。" );
+      .eq("user_id",session.user.id);
 
-    const queued=await getQueue().catch(()=>[]);
-    for(const q of queued.filter(q=>q.payload?.id===id && ["product_create","product_update","product_delete"].includes(q.type))){
-      await idbDelete("queue",q.id).catch(()=>{});
-      if(q.fileKey)await idbDelete("files",q.fileKey).catch(()=>{});
+    if(r.error)throw r.error;
+
+    // 實際重新查詢這一筆，確定雲端是否還存在。
+    const check=await sb.from("products")
+      .select("id")
+      .eq("id",id)
+      .eq("user_id",session.user.id)
+      .maybeSingle();
+
+    if(check.error)throw check.error;
+
+    if(check.data){
+      throw new Error("商品目前無法刪除，可能是資料庫權限設定問題");
     }
 
-    if(p?.photo_path)await sb.storage.from(CONFIG.bucket).remove([p.photo_path]).catch(()=>{});
+    if(p?.photo_path){
+      await sb.storage.from(CONFIG.bucket).remove([p.photo_path]).catch(()=>{});
+    }
+
+    await removeQueuedProductOps();
     await idbDelete("products",id).catch(()=>{});
-    productCache=productCache.filter(x=>x.id!==id);
-    document.querySelector(`[data-product-id="${CSS.escape(String(id))}"]`)?.remove();
+    productCache=productCache.filter(x=>String(x.id)!==String(id));
+    card?.remove();
 
-    const check=await sb.from("products").select("id").eq("id",id).eq("user_id",session.user.id).maybeSingle();
-    if(check.error && check.error.code!=="PGRST116")throw check.error;
-    if(check.data)throw new Error("商品刪除後仍存在於雲端，請檢查資料庫權限設定。" );
+    // 重新抓取最新商品列表；不走舊本機 cache。
+    page=0;
+    await loadProducts();
 
-    await render();
   }catch(e){
+    console.error("刪除商品失敗",e);
     alert("刪除失敗："+(e.message||String(e)));
-    await render().catch(()=>{});
+    // 保留現場，不自動 render 舊快取，避免商品「消失一秒又回來」。
   }
 }
 removeProduct=removeProductOfflineOrOnline;
@@ -1532,6 +1532,62 @@ async function render(first=false){
     else if(currentTab==="documents")await renderDocuments();
   }catch(e){console.error(e);if(!appOnline){$("app").innerHTML=`<div class="card empty">目前沒有可用的離線資料。<br><br>請先在線登入一次，並按「⬇️ 下載離線資料」。</div>`}else setAppMessage("系統載入失敗："+(e.message||String(e)))}
 }
+
+
+// === 最終商品刪除保護：改用 Supabase 原子函式，避免商品刪除後因關聯/快取又出現 ===
+window.removeProduct = async function(id){
+  if(!confirm("確定刪除這個商品？")) return;
+
+  const productId = String(id);
+  const p = productCache.find(x=>String(x.id)===productId) || await idbGet("products", id).catch(()=>null);
+  const card = document.querySelector(`[data-product-id="${CSS.escape(productId)}"]`);
+
+  async function clearQueuedProductOps(){
+    const q = await getQueue().catch(()=>[]);
+    for(const item of q){
+      if(["product_create","product_update","product_delete"].includes(item.type) && String(item.payload?.id||"")===productId){
+        await idbDelete("queue",item.id).catch(()=>{});
+        if(item.fileKey) await idbDelete("files",item.fileKey).catch(()=>{});
+      }
+    }
+  }
+
+  try{
+    if(!appOnline){
+      // 沿用現有離線刪除流程；不改其他離線功能。
+      await removeProductOfflineOrOnline(id);
+      return;
+    }
+
+    const r = await sb.rpc("delete_product_safe", { p_product_id: id });
+    if(r.error) throw r.error;
+
+    // 伺服器再次確認：這筆商品確實不存在，避免「消失一下又回來」。
+    const check = await sb.from("products")
+      .select("id")
+      .eq("id", id)
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+    if(check.error) throw check.error;
+    if(check.data) throw new Error("商品仍存在於雲端，刪除未完成。請稍後再試。 ");
+
+    if(p?.photo_path){
+      await sb.storage.from(CONFIG.bucket).remove([p.photo_path]).catch(()=>{});
+    }
+
+    await clearQueuedProductOps();
+    await idbDelete("products", id).catch(()=>{});
+    productCache = productCache.filter(x=>String(x.id)!==productId);
+
+    // 先把畫面上的卡片移除，再重新抓取最新資料。
+    card?.remove();
+    await loadProducts();
+    await loadStats();
+  }catch(e){
+    console.error("商品刪除失敗",e);
+    alert("刪除商品失敗：" + (e.message || String(e)));
+  }
+};
 
 offlineBoot();
 </script>
