@@ -874,7 +874,7 @@ async function renderDocuments(){
   let docs=[];
   if(appOnline){const r=await sb.from("purchase_documents").select("id,vendor_id,document_number,document_date,image_path,status,ai_summary,created_at,updated_at").order("created_at",{ascending:false}).limit(100);if(r.error)throw new Error("讀取貨單失敗："+r.error.message);docs=r.data||[];for(const d of docs)await cacheDocument(d)}else docs=(await idbGetAll("documents")).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
   const vName=id=>vendorCache.find(v=>v.id===id)?.name||"未設定廠商";
-  $("app").innerHTML=`<div class="addbar"><div class="hint">貨單照片可以先離線保存，連線後再同步</div><button class="primary" onclick="document.getElementById('documentDialog').showModal()">＋ 新增貨單</button></div><div class="list">${docs.map(d=>`<div class="card section"><div class="row"><div><strong>📷 ${esc(d.document_number||"未命名貨單")}</strong><div class="meta">${esc(d.document_date||"")}　🏭 ${esc(vName(d.vendor_id))}<br>狀態：${esc(d.status||"待辨識")}${d._local?"　（待同步）":""}</div></div></div>${d.ai_summary?`<div class="notice" style="margin-top:10px">${esc(d.ai_summary)}</div>`:""}</div>`).join("")||`<div class="card empty">尚無貨單</div>`}</div>`;
+  $("app").innerHTML=`<div class="addbar"><div class="hint">貨單照片可以先離線保存，連線後再同步</div><button class="primary" id="addDocumentBtn" type="button">＋ 新增貨單</button></div><div class="list">${docs.map(d=>`<div class="card section"><div class="row"><div><strong>📷 ${esc(d.document_number||"未命名貨單")}</strong><div class="meta">${esc(d.document_date||"")}　🏭 ${esc(vName(d.vendor_id))}<br>狀態：${esc(d.status||"待辨識")}${d._local?"　（待同步）":""}</div></div></div>${d.ai_summary?`<div class="notice" style="margin-top:10px">${esc(d.ai_summary)}</div>`:""}</div>`).join("")||`<div class="card empty">尚無貨單</div>`}</div>`;
 }
 
 async function createDocumentOfflineOrOnline(){
@@ -886,6 +886,26 @@ async function createDocumentOfflineOrOnline(){
     const up=await sb.storage.from(CONFIG.bucket).upload(path,f,{contentType:f.type||"image/jpeg"});if(up.error)throw up.error;const ins=await sb.from("purchase_documents").insert(base);if(ins.error)throw ins.error;await cacheDocument(base);$("documentDialog").close();await render();alert("貨單已儲存。AI 辨識功能會在後端完成。");
   }catch(e){alert("建立貨單失敗："+(e.message||String(e)))}
 }
+// 貨單按鈕：使用事件監聽，不依賴 innerHTML 的 inline onclick，避免 GitHub Pages/瀏覽器快取造成按鈕無反應。
+document.addEventListener("click",(e)=>{
+  const btn=e.target.closest("#addDocumentBtn");
+  if(!btn)return;
+  const dlg=$("documentDialog");
+  if(!dlg){alert("找不到貨單視窗，請重新整理頁面。");return;}
+  try{
+    if(typeof dlg.showModal === "function"){
+      if(!dlg.open) dlg.showModal();
+    }else if(typeof dlg.show === "function"){
+      dlg.show();
+    }else{
+      dlg.setAttribute("open","open");
+    }
+  }catch(err){
+    console.error("開啟貨單視窗失敗",err);
+    dlg.setAttribute("open","open");
+  }
+});
+
 $("createDocument").onclick=createDocumentOfflineOrOnline;
 
 async function syncOne(item){
