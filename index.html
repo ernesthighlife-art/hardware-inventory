@@ -451,9 +451,11 @@ async function removeVendor(id){
       for(const p of local.filter(p=>p.vendor_id===id)){p.vendor_id=null;await cacheProduct(p);}
       await idbDelete('vendors',id);await enqueue('vendor_delete',{id});productFilters.vendor='';await loadLocalMeta();await render(true);return;
     }
-    let r=await sb.from('products').update({vendor_id:null}).eq('vendor_id',id);if(r.error)throw r.error;
-    r=await sb.from('purchase_documents').update({vendor_id:null}).eq('vendor_id',id);if(r.error)throw r.error;
-    r=await sb.from('vendors').delete().eq('id',id);if(r.error)throw r.error;
+    const r=await sb.rpc('delete_vendor_safe',{p_vendor_id:id});if(r.error)throw r.error;
+    vendorCache=vendorCache.filter(x=>x.id!==id);
+    const localProducts=await idbGetAll('products').catch(()=>[]);
+    for(const p of localProducts.filter(p=>p.vendor_id===id)){p.vendor_id=null;await cacheProduct(p);}
+    productCache=productCache.map(p=>p.vendor_id===id?{...p,vendor_id:null}:p);
     productFilters.vendor='';await loadMeta();await render();
   }catch(e){alert('刪除廠商失敗：'+(e.message||String(e)))}
 }
@@ -1042,32 +1044,40 @@ async function runPurchaseAI(documentId){
 }
 
 async function deletePurchaseDocument(documentId, isConfirmed){
-  if(!confirm(isConfirmed?"這張貨單已經入庫。\n\n確定刪除貨單紀錄？\n（只刪除貨單與辨識明細，不會回扣庫存）":"確定刪除這張 AI 貨單？\n刪除後會連同辨識明細一起移除，之後可以重新拍照辨識。"))return;
+  const card = document.querySelector(`[data-doc-delete="${CSS.escape(documentId)}"]`)?.closest('.card.section');
+  const msg = isConfirmed
+    ? "這張貨單已經入庫。\n\n確定刪除貨單紀錄？\n（只刪除貨單與辨識明細，不會回扣庫存）"
+    : "確定刪除這張 AI 貨單？\n刪除後會連同辨識明細一起移除，之後可以重新拍照辨識。";
+  if(!confirm(msg)) return false;
   try{
     if(!appOnline){
       const d=(await idbGetAll("documents")).find(x=>x.id===documentId);
-      if(d?.image_path){}
       await idbDelete("documents",documentId);
       await enqueue("document_delete",{id:documentId,image_path:d?.image_path||null});
+      if(currentReviewDocumentId===documentId){currentReviewDocumentId=null;try{$("purchaseReviewDialog").close()}catch{}}
+      if(card) card.remove();
       await render();
-      alert("✅ 已從本機刪除貨單。恢復網路後會同步刪除雲端貨單。");
-      return;
+      return true;
     }
     const items=await sb.from("purchase_document_items").delete().eq("document_id",documentId).eq("user_id",session.user.id);
-    if(items.error)throw items.error;
+    if(items.error) throw items.error;
     const doc=await sb.from("purchase_documents").select("image_path").eq("id",documentId).eq("user_id",session.user.id).single();
-    if(doc.error)throw doc.error;
+    if(doc.error) throw doc.error;
     const del=await sb.from("purchase_documents").delete().eq("id",documentId).eq("user_id",session.user.id);
-    if(del.error)throw del.error;
-    if(doc.data?.image_path)await sb.storage.from(CONFIG.bucket).remove([doc.data.image_path]).catch(()=>{});
+    if(del.error) throw del.error;
+    if(doc.data?.image_path) await sb.storage.from(CONFIG.bucket).remove([doc.data.image_path]).catch(()=>{});
     await idbDelete("documents",documentId).catch(()=>{});
     if(currentReviewDocumentId===documentId){currentReviewDocumentId=null;try{$("purchaseReviewDialog").close()}catch{}}
+    // 成功刪除後立即從畫面移除，不保留「已刪除」紀錄或按鈕。
+    if(card) card.remove();
     await render();
-    alert("✅ AI 貨單已刪除。之後可以重新上傳同一張貨單進行辨識，不會因為刪除而重複增加庫存。");
+    return true;
   }catch(e){
     alert("刪除貨單失敗："+(e.message||String(e)));
+    return false;
   }
 }
+
 
 let currentReviewDocumentId=null;
 let purchaseReviewState=new Map();
@@ -1171,9 +1181,11 @@ async function syncOne(item){
   }else if(item.type==="vendor_create"){
     const r=await sb.from("vendors").upsert({...item.payload,user_id:user},{onConflict:"id"});if(r.error)throw r.error;await cacheVendor(item.payload);
   }else if(item.type==="vendor_delete"){
-    let r=await sb.from("products").update({vendor_id:null}).eq("vendor_id",item.payload.id);if(r.error)throw r.error;
-    r=await sb.from("purchase_documents").update({vendor_id:null}).eq("vendor_id",item.payload.id);if(r.error)throw r.error;
-    r=await sb.from("vendors").delete().eq("id",item.payload.id);if(r.error)throw r.error;await idbDelete("vendors",item.payload.id);
+    const r=await sb.rpc("delete_vendor_safe",{p_vendor_id:item.payload.id});if(r.error)throw r.error;
+    await idbDelete("vendors",item.payload.id);
+    const localProducts=await idbGetAll("products").catch(()=>[]);
+    for(const p of localProducts.filter(p=>p.vendor_id===item.payload.id)){p.vendor_id=null;await cacheProduct(p);}
+    productCache=productCache.map(p=>p.vendor_id===item.payload.id?{...p,vendor_id:null}:p);
   }else if(item.type==="category_delete"){
     const ids=item.payload.ids||[];let r=ids.length?await sb.from("products").update({category_id:null}).in("category_id",ids):{error:null};if(r.error)throw r.error;
     for(const id of [...ids].reverse()){r=await sb.from("categories").delete().eq("id",id);if(r.error)throw r.error;await idbDelete("categories",id);}
