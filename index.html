@@ -424,6 +424,17 @@ function updateSearchHint(){
 
 function setTab(t){currentTab=t;page=0;render()}
 async function renderVendors(){
+  // 線上時每次進入廠商頁都直接重新抓雲端資料，避免「數量已變、列表還是舊資料」。
+  if(appOnline){
+    const r=await sb.from("vendors")
+      .select("id,name,phone,address,contact_name,note,user_id")
+      .order("name");
+    if(r.error)throw new Error("讀取廠商資料失敗："+r.error.message);
+    vendorCache=r.data||[];
+    await cacheRows("vendors",vendorCache);
+  }else{
+    await loadLocalMeta();
+  }
   $("app").innerHTML=`<div class="addbar"><div class="hint">${fmt(vendorCache.length)} 家廠商</div><button class="primary" onclick="openVendor()">＋ 新增廠商</button></div><div class="list">
   ${vendorCache.map(v=>`<div class="card section"><div class="row"><div><h3>🏭 ${esc(v.name)}</h3><div class="meta">${esc(v.phone||"未填電話")}</div></div><div class="actions"><button class="secondary" onclick="searchVendor('${v.id}')">查看商品</button><button class="danger" onclick="removeVendor('${v.id}')">刪除</button></div></div></div>`).join("")||`<div class="card empty">尚未建立廠商</div>`}</div>`;
 }
@@ -444,19 +455,36 @@ function locationDescendantIds(rootId){
 }
 async function removeVendor(id){
   const v=vendorCache.find(x=>x.id===id);if(!v)return;
-  if(!confirm(`確定刪除廠商「${v.name}」？\n商品不會刪除，會改成「未設定廠商」。`))return;
+  if(!confirm(`確定刪除廠商「${v.name}」？\n只解除這一個廠商與商品的關聯，不會刪除其他廠商或商品。`))return;
   try{
     if(!appOnline){
       const local=await idbGetAll('products').catch(()=>[]);
       for(const p of local.filter(p=>p.vendor_id===id)){p.vendor_id=null;await cacheProduct(p);}
-      await idbDelete('vendors',id);await enqueue('vendor_delete',{id});productFilters.vendor='';await loadLocalMeta();await render(true);return;
+      await idbDelete('vendors',id);
+      await enqueue('vendor_delete',{id});
+      vendorCache=vendorCache.filter(x=>x.id!==id);
+      productFilters.vendor='';
+      productCache=productCache.map(p=>p.vendor_id===id?{...p,vendor_id:null}:p);
+      await renderVendors();
+      return;
     }
-    const r=await sb.rpc('delete_vendor_safe',{p_vendor_id:id});if(r.error)throw r.error;
+
+    // 由資料庫安全函式刪除「指定」廠商；不直接修改其他廠商的商品。
+    const r=await sb.rpc('delete_vendor_safe',{p_vendor_id:id});
+    if(r.error)throw r.error;
+
+    // 同步刪除本機快取中的同一筆廠商，不碰其他廠商。
+    await idbDelete('vendors',id).catch(()=>{});
     vendorCache=vendorCache.filter(x=>x.id!==id);
-    const localProducts=await idbGetAll('products').catch(()=>[]);
-    for(const p of localProducts.filter(p=>p.vendor_id===id)){p.vendor_id=null;await cacheProduct(p);}
     productCache=productCache.map(p=>p.vendor_id===id?{...p,vendor_id:null}:p);
-    productFilters.vendor='';await loadMeta();await render();
+    productFilters.vendor='';
+
+    // 重新從雲端抓廠商列表，避免列表顯示舊資料或漏掉剛新增的廠商。
+    await renderVendors();
+
+    // 商品列表若目前可見，重新從雲端抓一次，確保只解除被刪廠商的關聯。
+    if(currentTab==="products")await loadProducts();
+    await loadStats();
   }catch(e){alert('刪除廠商失敗：'+(e.message||String(e)))}
 }
 function renderCategories(){
@@ -915,8 +943,29 @@ async function saveVendorOfflineOrOnline(){
   const name=$("vendorName").value.trim();if(!name)return alert("請輸入廠商名稱");
   const id=crypto.randomUUID();const obj={id,user_id:session.user.id,name,phone:$("vendorPhone").value.trim()||null,address:$("vendorAddress").value.trim()||null,contact_name:$("vendorContact").value.trim()||null,note:$("vendorNote").value.trim()||null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   try{
-    if(!appOnline){await cacheVendor(obj);await enqueue("vendor_create",obj);$("vendorDialog").close();await render();alert("廠商已儲存在本機，恢復網路後會同步雲端。");return}
-    const r=await sb.from("vendors").insert(obj);if(r.error)throw r.error;await cacheVendor(obj);$("vendorDialog").close();await render();
+    if(!appOnline){
+      await cacheVendor(obj);
+      await enqueue("vendor_create",obj);
+      vendorCache=[...vendorCache.filter(v=>v.id!==id),obj].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"zh-TW"));
+      $("vendorDialog").close();
+      await renderVendors();
+      alert("廠商已儲存在本機，恢復網路後會同步雲端。");
+      return
+    }
+
+    // 要拿到資料庫實際寫入的那一筆，再更新畫面，避免「統計增加、列表仍是舊快取」。
+    const r=await sb.from("vendors")
+      .insert(obj)
+      .select("id,name,phone,address,contact_name,note,user_id,created_at,updated_at")
+      .single();
+    if(r.error)throw r.error;
+
+    await cacheVendor(r.data);
+    vendorCache=[...vendorCache.filter(v=>v.id!==r.data.id),r.data]
+      .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"zh-TW"));
+    $("vendorDialog").close();
+    await renderVendors();
+    await loadStats();
   }catch(e){alert("新增廠商失敗："+(e.message||String(e)))}
 }
 $("saveVendor").onclick=saveVendorOfflineOrOnline;
