@@ -1244,46 +1244,95 @@ function calendarStatusClass(status){
   if(status==="待確認")return "pending";
   return "waiting";
 }
+function calendarVendorColor(vendorId){
+  const palette=["#c7782a","#4d79b8","#8b5fbf","#3f8f6b","#b85c7a","#6b7280","#b06a2c","#4c8b8b"];
+  const text=String(vendorId||"未設定");
+  let h=0;for(let i=0;i<text.length;i++)h=(h*31+text.charCodeAt(i))>>>0;
+  return palette[h%palette.length];
+}
 async function loadCalendarDocuments(){
   const y=calendarViewDate.getFullYear(),m=calendarViewDate.getMonth();
   const start=`${y}-${String(m+1).padStart(2,"0")}-01`;
   const endDate=new Date(y,m+1,1);
   const end=`${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,"0")}-01`;
   if(appOnline){
-    const r=await sb.from("purchase_documents")
+    const dr=await sb.from("purchase_documents")
       .select("id,user_id,vendor_id,document_number,document_date,image_path,status,ai_summary,created_at,updated_at")
       .gte("document_date",start).lt("document_date",end)
+      .not("document_date","is",null)
       .order("document_date",{ascending:true}).order("created_at",{ascending:true}).limit(1000);
-    if(r.error)throw new Error("讀取行事曆貨單失敗："+r.error.message);
-    calendarDocs=(r.data||[]).filter(d=>d.status!=="已刪除");
-    for(const d of calendarDocs)await cacheDocument(d).catch(()=>{});
+    if(dr.error)throw new Error("讀取行事曆資料失敗："+dr.error.message);
+    const docs=(dr.data||[]).filter(d=>d.status!=="已刪除");
+    const docIds=docs.map(d=>d.id).filter(Boolean);
+    const docMap=new Map(docs.map(d=>[d.id,d]));
+    let items=[];
+    if(docIds.length){
+      const ir=await sb.from("purchase_document_items")
+        .select("id,document_id,product_id,raw_name,raw_spec,quantity,unit,unit_price,match_status,match_confidence")
+        .in("document_id",docIds)
+        .not("product_id","is",null)
+        .limit(5000);
+      if(ir.error)throw new Error("讀取行事曆商品資料失敗："+ir.error.message);
+      items=ir.data||[];
+    }
+    const productIds=[...new Set(items.map(it=>it.product_id).filter(Boolean))];
+    let products=[];
+    if(productIds.length){
+      const pr=await sb.from("products")
+        .select("id,name,spec,brand,photo_path,location,vendor_id,unit,sale_unit,purchase_unit")
+        .in("id",productIds)
+        .limit(5000);
+      if(pr.error)throw new Error("讀取行事曆商品失敗："+pr.error.message);
+      products=pr.data||[];
+    }
+    const productMap=new Map(products.map(p=>[p.id,p]));
+    calendarDocs=items.map(it=>{
+      const d=docMap.get(it.document_id),p=productMap.get(it.product_id);
+      if(!d||!p)return null;
+      return {...it,document_date:d.document_date,document_number:d.document_number,vendor_id:d.vendor_id,status:d.status,product:p};
+    }).filter(Boolean).sort((a,b)=>`${a.document_date||""}${a.product?.name||""}`.localeCompare(`${b.document_date||""}${b.product?.name||""}`));
   }else{
-    const all=await idbGetAll("documents").catch(()=>[]);
+    // 離線時沿用已下載的貨單與商品明細；沒有下載明細時會提示先同步。
+    const allDocs=await idbGetAll("documents").catch(()=>[]);
+    const allItems=await idbGetAll("purchase_document_items").catch(()=>[]);
+    const allProducts=await idbGetAll("products").catch(()=>[]);
     const key=calendarMonthKey(calendarViewDate);
-    calendarDocs=all.filter(d=>String(d.document_date||"").slice(0,7)===key&&d.status!=="已刪除")
-      .sort((a,b)=>`${a.document_date||""}${a.created_at||""}`.localeCompare(`${b.document_date||""}${b.created_at||""}`));
+    const docs=allDocs.filter(d=>String(d.document_date||"").slice(0,7)===key&&d.status!=="已刪除");
+    const docMap=new Map(docs.map(d=>[d.id,d]));
+    const productMap=new Map(allProducts.map(p=>[p.id,p]));
+    calendarDocs=allItems.map(it=>{
+      const d=docMap.get(it.document_id),p=productMap.get(it.product_id);
+      return d&&p?{...it,document_date:d.document_date,document_number:d.document_number,vendor_id:d.vendor_id,status:d.status,product:p}:null;
+    }).filter(Boolean).sort((a,b)=>`${a.document_date||""}${a.product?.name||""}`.localeCompare(`${b.document_date||""}${b.product?.name||""}`));
   }
 }
 function renderCalendarDetail(dateKey){
   const host=$("calendarDetail");if(!host)return;
-  const docs=calendarDocs.filter(d=>String(d.document_date||"").slice(0,10)===dateKey);
-  if(!docs.length){
-    host.innerHTML=`<div class="card section calendar-detail empty">📅 ${esc(calendarDateLabel(dateKey))}<br><span class="hint">這一天沒有貨單。</span></div>`;
+  const items=calendarDocs.filter(x=>String(x.document_date||"").slice(0,10)===dateKey);
+  if(!items.length){
+    host.innerHTML=`<div class="card section calendar-detail empty">📅 ${esc(calendarDateLabel(dateKey))}<br><span class="hint">這一天沒有進貨商品。</span></div>`;
     return;
   }
-  const vName=id=>vendorCache.find(v=>v.id===id)?.name||"未設定廠商";
+  const uniqueProducts=new Map();
+  for(const it of items){
+    const p=it.product;if(!p?.id)continue;
+    const key=p.id;
+    if(!uniqueProducts.has(key))uniqueProducts.set(key,{product:p,rows:[]});
+    uniqueProducts.get(key).rows.push(it);
+  }
+  const groups=[...uniqueProducts.values()];
   host.innerHTML=`<div class="card section calendar-detail">
-    <div class="row"><div><h3 style="margin:0">📅 ${esc(calendarDateLabel(dateKey))}</h3><div class="meta">共 ${docs.length} 張貨單</div></div></div>
+    <div class="row"><div><h3 style="margin:0">📅 ${esc(calendarDateLabel(dateKey))}</h3><div class="meta">共 ${groups.length} 項商品・${items.length} 筆進貨明細</div></div></div>
     <div class="list" style="margin-top:8px">
-      ${docs.map(d=>{
-        const statusClass=calendarStatusClass(d.status),badgeClass=statusClass==="ok"?"ok":statusClass==="waiting"?"low":"";
-        return `<div class="card section" style="margin:0"><div class="row">
-          <div style="min-width:0"><strong>🧾 ${esc(d.document_number||"未命名貨單")}</strong>
-            <div class="meta">🏭 ${esc(vName(d.vendor_id))}<br>貨單日期：${esc(d.document_date||"未設定")}　狀態：<span class="badge ${badgeClass}">${esc(d.status||"待辨識")}</span></div>
-            ${d.ai_summary?`<div class="review-note">${esc(d.ai_summary)}</div>`:""}
-          </div>
-          <div class="review-actions"><button type="button" class="secondary" data-calendar-review="${d.id}">${d.status==="待確認"?"✅ 檢視並確認":"查看貨單"}</button></div>
-        </div></div>`;
+      ${groups.map(({product:p,rows})=>{
+        const vendors=[...new Map(rows.map(r=>[r.vendor_id,vendorName(r.vendor_id)])).entries()];
+        const vendorText=vendors.map(([id,name])=>`<span class="badge" style="border-left:4px solid ${calendarVendorColor(id)}">🏭 ${esc(name)}</span>`).join("");
+        const qtyText=rows.map(r=>`${fmt(r.quantity)} ${esc(r.unit||p.purchase_unit||p.sale_unit||p.unit||"個")}`).join("＋");
+        return `<button type="button" class="card section" style="margin:0;text-align:left;border:1px solid var(--line)" data-calendar-product="${esc(p.id)}">
+          <div class="row"><div style="min-width:0"><strong>📦 ${esc(p.name||rows[0]?.raw_name||"未命名商品")}</strong>${p.brand?` <span class="badge">🏷️ ${esc(p.brand)}</span>`:""}
+            <div class="meta">${p.spec?`規格：${esc(p.spec)}<br>`:""}${vendorText}<br>進貨：${qtyText}</div>
+          </div><div class="review-actions"><span class="secondary">查看商品</span></div></div>
+        </button>`;
       }).join("")}
     </div>
   </div>`;
@@ -1293,9 +1342,9 @@ function drawCalendarGrid(){
   const first=new Date(y,m,1),last=new Date(y,m+1,0);
   const startOffset=first.getDay(),daysInMonth=last.getDate(),prevDays=new Date(y,m,0).getDate();
   const byDate=new Map();
-  for(const d of calendarDocs){
-    const key=String(d.document_date||"").slice(0,10);if(!key)continue;
-    if(!byDate.has(key))byDate.set(key,[]);byDate.get(key).push(d);
+  for(const item of calendarDocs){
+    const key=String(item.document_date||"").slice(0,10);if(!key)continue;
+    if(!byDate.has(key))byDate.set(key,[]);byDate.get(key).push(item);
   }
   const todayKey=new Date().toISOString().slice(0,10),cells=[];
   for(let i=0;i<42;i++){
@@ -1304,18 +1353,19 @@ function drawCalendarGrid(){
     else if(i<startOffset+daysInMonth){dayNum=i-startOffset+1;cellDate=new Date(y,m,dayNum)}
     else{dayNum=i-(startOffset+daysInMonth)+1;cellDate=new Date(y,m+1,dayNum);other=true}
     const key=`${cellDate.getFullYear()}-${String(cellDate.getMonth()+1).padStart(2,"0")}-${String(cellDate.getDate()).padStart(2,"0")}`;
-    const docs=byDate.get(key)||[],cls=["calendar-day"];
-    if(other)cls.push("other-month");if(key===todayKey)cls.push("today");if(docs.length)cls.push("has-doc");
-    const visible=docs.slice(0,3);
+    const items=byDate.get(key)||[],cls=["calendar-day"];
+    if(other)cls.push("other-month");if(key===todayKey)cls.push("today");if(items.length)cls.push("has-doc");
+    const products=[...new Map(items.map(x=>[x.product_id,x])).values()],visible=products.slice(0,3);
     cells.push(`<button type="button" class="${cls.join(" ")}" data-calendar-date="${key}" aria-label="${esc(calendarDateLabel(key))}">
       <span class="calendar-num">${dayNum}</span>
-      ${docs.length?`<div class="calendar-docs">${visible.map(d=>`<div class="calendar-doc-dot ${calendarStatusClass(d.status)}"><span class="dot"></span><span class="calendar-doc-name">${esc(d.document_number||"貨單")}</span></div>`).join("")}${docs.length>3?`<div class="calendar-more">＋${docs.length-3} 張</div>`:""}</div>`:""}
+      ${products.length?`<div class="calendar-docs">${visible.map(it=>`<div class="calendar-doc-dot" title="${esc(it.product?.name||it.raw_name||"商品")}"><span class="dot" style="background:${calendarVendorColor(it.vendor_id)}"></span><span class="calendar-doc-name">${esc(it.product?.name||it.raw_name||"商品")}</span></div>`).join("")}${products.length>3?`<div class="calendar-more">＋${products.length-3} 項商品</div>`:""}</div>`:""}
     </button>`);
   }
   $("calendarTitle").textContent=`${y} 年 ${m+1} 月`;
   $("calendarGrid").innerHTML=cells.join("");
   const uniqueDays=new Set(calendarDocs.map(d=>String(d.document_date||"").slice(0,10)).filter(Boolean));
-  $("calendarHint").textContent=`本月 ${calendarDocs.length} 張貨單・${uniqueDays.size} 天有貨單`;
+  const uniqueProducts=new Set(calendarDocs.map(d=>d.product_id).filter(Boolean));
+  $("calendarHint").textContent=`本月 ${uniqueProducts.size} 項商品・${calendarDocs.length} 筆進貨明細・${uniqueDays.size} 天有進貨`;
 }
 async function selectCalendarMonth(delta){
   calendarViewDate=new Date(calendarViewDate.getFullYear(),calendarViewDate.getMonth()+delta,1);
@@ -1323,7 +1373,7 @@ async function selectCalendarMonth(delta){
 }
 async function renderCalendar(){
   await loadCalendarDocuments();
-  $("app").innerHTML=`<div class="addbar"><div><div class="hint">📅 這裡只使用「貨單上的日期」，不是系統建立紀錄的時間。</div><div id="calendarHint" class="hint" style="margin-top:3px"></div></div></div>
+  $("app").innerHTML=`<div class="addbar"><div><div class="hint">📅 這裡以「每個商品的進貨紀錄日期」為主；點日期後查看當天進貨的商品。</div><div id="calendarHint" class="hint" style="margin-top:3px"></div></div></div>
     <div class="calendar-wrap">
       <div class="calendar-head">
         <div class="calendar-nav"><button type="button" data-calendar-prev>‹ 上個月</button><button type="button" data-calendar-today>今天</button></div>
@@ -1332,7 +1382,7 @@ async function renderCalendar(){
       </div>
       <div class="calendar-week"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
       <div id="calendarGrid" class="calendar-grid"></div>
-      <div class="calendar-legend"><span><i style="background:var(--success)"></i>已確認</span><span><i style="background:#9b63c7"></i>待確認</span><span><i style="background:var(--warn)"></i>待辨識</span></div>
+      <div class="calendar-legend"><span><i style="background:#c7782a"></i>廠商／商品標記</span><span>點日期查看當天進貨商品</span></div>
     </div>
     <div id="calendarDetail"></div>`;
   drawCalendarGrid();
@@ -1591,6 +1641,8 @@ document.addEventListener("click",async(e)=>{
   const rr=e.target.closest("[data-review-remove]");if(rr){await removePurchaseReviewItem(rr.dataset.reviewRemove);return;}
   const calDate=e.target.closest("[data-calendar-date]");
   if(calDate){renderCalendarDetail(calDate.dataset.calendarDate);return;}
+  const calProduct=e.target.closest("[data-calendar-product]");
+  if(calProduct){try{await openProduct(calProduct.dataset.calendarProduct)}catch(err){alert(err.message||String(err))}return;}
   if(e.target.closest("[data-calendar-prev]")){await selectCalendarMonth(-1);return;}
   if(e.target.closest("[data-calendar-next]")){await selectCalendarMonth(1);return;}
   if(e.target.closest("[data-calendar-today]")){calendarViewDate=new Date();calendarViewDate=new Date(calendarViewDate.getFullYear(),calendarViewDate.getMonth(),1);await renderCalendar();return;}
