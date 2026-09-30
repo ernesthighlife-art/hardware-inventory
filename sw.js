@@ -1,4 +1,4 @@
-const CACHE='hardware-inventory-v20260907-20';
+const CACHE='hardware-inventory-v20260930-decimal-01';
 const CORE=['./','./index.html','./manifest.json'];
 
 self.addEventListener('install', event => {
